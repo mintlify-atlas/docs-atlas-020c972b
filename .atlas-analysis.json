@@ -1,0 +1,107 @@
+{
+  "projectType": "saas",
+  "projectName": "PIPELINE",
+  "projectDescription": "A job search intelligence platform that treats job hunting like DevOps with tracking, AI scoring, and automation.",
+  "theme": "aspen",
+  "primaryColor": "#10b981",
+  "lightColor": "#34d399",
+  "darkColor": "#059669",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/tracker",
+              "features/dashboard",
+              "features/intel",
+              "features/ai-scoring"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/keyboard-shortcuts",
+              "guides/job-management",
+              "guides/analytics",
+              "guides/integrations"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/tech-stack",
+              "architecture/database-schema",
+              "architecture/authentication",
+              "architecture/deployment"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/jobs",
+              "api/analytics",
+              "api/ai",
+              "api/export"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "api/webhooks",
+              "api/rate-limits",
+              "api/errors"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Kanban job tracker with drag-and-drop",
+    "AI-powered job match scoring",
+    "Analytics dashboard with metrics and charts",
+    "Market intelligence insights",
+    "Keyboard-first navigation with command palette",
+    "Auto-scraping from job boards",
+    "Discord and Gmail integrations",
+    "Data export (CSV/JSON)"
+  ],
+  "publicApiSurface": [
+    "POST /api/auth/signup",
+    "POST /api/auth/login",
+    "POST /api/auth/logout",
+    "GET /api/jobs",
+    "POST /api/jobs",
+    "PATCH /api/jobs/:id",
+    "DELETE /api/jobs/:id",
+    "GET /api/analytics/dashboard",
+    "GET /api/analytics/timeline",
+    "POST /api/ai/score-job",
+    "POST /api/ai/generate-insights",
+    "GET /api/export/csv",
+    "GET /api/export/json"
+  ]
+}
