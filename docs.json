@@ -42,7 +42,8 @@
               "features/tracker",
               "features/dashboard",
               "features/intel",
-              "features/ai-scoring"
+              "features/ai-scoring",
+              "features/settings"
             ]
           },
           {

@@ -1,0 +1,283 @@
+---
+title: Settings
+description: Manage your profile, account, preferences, and data in PIPELINE
+---
+
+The Settings page is your control center for managing your PIPELINE account, personalizing your experience, and controlling your data. Access it by pressing `⌘,` or clicking your profile in the sidebar.
+
+## Overview
+
+Settings is organized into four main sections:
+
+<CardGroup cols={2}>
+  <Card title="Profile" icon="user" href="#profile">
+    Update your name, bio, contact info, and social links
+  </Card>
+  <Card title="Account" icon="shield" href="#account">
+    Manage email, password, and authentication settings
+  </Card>
+  <Card title="Preferences" icon="sliders" href="#preferences">
+    Customize notifications, display, and workflow preferences
+  </Card>
+  <Card title="Data & Danger Zone" icon="database" href="#data-and-danger-zone">
+    Export your data or delete your account
+  </Card>
+</CardGroup>
+
+---
+
+## Profile
+
+Personalize your PIPELINE profile with your professional information.
+
+### Available Fields
+
+<AccordionGroup>
+  <Accordion title="Basic Information">
+    - **Full Name** — Your display name across PIPELINE
+    - **Email** — Your primary email (read-only, managed in Account section)
+    - **Phone** — Optional contact number
+    - **Bio** — Brief professional summary
+  </Accordion>
+
+  <Accordion title="Location & Links">
+    - **Location** — City, country, or "Remote"
+    - **Website** — Personal website or portfolio URL
+    - **LinkedIn** — Your LinkedIn profile URL
+  </Accordion>
+
+  <Accordion title="Profile Picture">
+    Click the avatar to upload a profile picture.
+    
+    <Warning>
+      Avatar upload requires Supabase Storage setup. Currently planned for Phase 3.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+### Save Changes
+
+Profile changes are saved to your Supabase user metadata:
+
+```typescript
+// Profile data structure (src/components/settings/profile-settings.tsx:28-36)
+{
+  name: string
+  email: string // read-only
+  phone: string
+  bio: string
+  location: string
+  website: string
+  linkedin: string
+}
+```
+
+Changes are stored in `user.user_metadata` and synchronized across sessions.
+
+---
+
+## Account
+
+Manage your authentication and security settings.
+
+### Email & Verification
+
+<ResponseField name="Email Address" type="string">
+  Your current email address. This is set during signup and cannot be changed in the UI.
+</ResponseField>
+
+<ResponseField name="Email Verified" type="boolean">
+  Shows whether you've confirmed your email via the verification link sent during signup.
+  
+  <Tip>
+    Check your spam folder if you haven't received the verification email. You can request a new one from the Supabase dashboard.
+  </Tip>
+</ResponseField>
+
+### Password Management
+
+<Steps>
+  <Step title="Change password">
+    Click **Change Password** to update your account password.
+  </Step>
+  <Step title="Verify identity">
+    You'll need to confirm your current password before setting a new one.
+  </Step>
+  <Step title="Set new password">
+    Passwords must be at least 8 characters with mixed case, numbers, and symbols.
+  </Step>
+</Steps>
+
+<Warning>
+  Password changes log you out of all sessions. You'll need to log back in with your new password.
+</Warning>
+
+### Two-Factor Authentication
+
+<Note>
+  Two-factor authentication (2FA) via Supabase Auth is planned for a future release. Monitor the [GitHub repo](https://github.com/therealwilberk/pipe-Ui) for updates.
+</Note>
+
+---
+
+## Preferences
+
+Customize how PIPELINE works for you.
+
+### Notification Settings
+
+Control when and how you receive notifications:
+
+<Tabs>
+  <Tab title="Email Notifications">
+    - **Job Status Changes** — Get notified when a job moves through your pipeline
+    - **Interview Reminders** — Email alerts 24h and 1h before scheduled interviews
+    - **Daily Digest** — Summary of activity and recommended actions
+    - **Weekly Reports** — Analytics and insights delivered every Monday
+    
+    <Info>
+      Email notifications require Discord or Gmail integration (planned for post-v1).
+    </Info>
+  </Tab>
+
+  <Tab title="In-App Notifications">
+    - **Toast Alerts** — Success/error messages for actions
+    - **Activity Feed** — Real-time updates in the Dashboard activity panel
+    - **Badge Counts** — Unread notification indicators in the sidebar
+  </Tab>
+</Tabs>
+
+### Display Preferences
+
+<AccordionGroup>
+  <Accordion title="Theme">
+    Switch between light and dark mode. PIPELINE defaults to dark mode for the terminal aesthetic.
+    
+    **Keyboard shortcut:** Access theme toggle via `⌘K` command palette.
+  </Accordion>
+
+  <Accordion title="Default View">
+    Choose your preferred default view when opening the Tracker:
+    - **Board View** — Kanban columns (default)
+    - **List View** — Sortable table layout
+  </Accordion>
+
+  <Accordion title="Time Zone">
+    Set your local time zone for accurate interview scheduling and activity timestamps.
+  </Accordion>
+</AccordionGroup>
+
+### Workflow Settings
+
+<ResponseField name="Auto-Archive" type="boolean">
+  Automatically archive rejected applications after 30 days to keep your tracker clean.
+</ResponseField>
+
+<ResponseField name="AI Auto-Score" type="boolean">
+  Enable automatic AI scoring for new job applications (requires AI engine setup in Phase 2).
+</ResponseField>
+
+<ResponseField name="Default Job Source" type="enum">
+  Pre-select your most common job source when adding new applications:
+  - `manual` (default)
+  - `linkedin`
+  - `brightermonday`
+  - `fuzu`
+</ResponseField>
+
+---
+
+## Data and Danger Zone
+
+Manage your data exports and account deletion.
+
+### Export Your Data
+
+Download all your PIPELINE data in standard formats:
+
+<Tabs>
+  <Tab title="JSON Export">
+    Complete data export including:
+    - All job applications with full metadata
+    - Events and timeline data
+    - AI insights and scores
+    - User profile and settings
+    
+    ```bash
+    GET /api/export?format=json
+    ```
+    
+    **Use case:** Import into other tools, create backups, or perform custom analysis.
+  </Tab>
+
+  <Tab title="CSV Export">
+    Tabular export optimized for spreadsheets:
+    - Job applications (one row per job)
+    - Flattened structure with key fields
+    - AI scores and dates
+    
+    ```bash
+    GET /api/export?format=csv
+    ```
+    
+    **Use case:** Import into Excel, Google Sheets, or data analysis tools.
+  </Tab>
+</Tabs>
+
+<Note>
+  Exports include only your own data. Row-Level Security (RLS) ensures you can only export jobs you own.
+</Note>
+
+### Delete Account (Danger Zone)
+
+<Warning>
+  Account deletion is permanent and cannot be undone. All your data will be permanently deleted.
+</Warning>
+
+**What gets deleted:**
+- Your user account and profile
+- All job applications and events
+- AI insights and scores
+- Activity history and analytics data
+
+**Before deleting:**
+1. Export your data using the export feature above
+2. Type your email address to confirm
+3. Click **Delete Account** and confirm again
+
+```typescript
+// Account deletion flow (src/components/settings/danger-zone.tsx)
+1. User clicks "Delete Account"
+2. Confirmation modal appears
+3. User types email to confirm
+4. DELETE /api/user (soft delete with 30-day grace period)
+5. User is logged out
+6. Account marked for deletion
+```
+
+<Tip>
+  Deleted accounts enter a 30-day grace period. Contact support within 30 days if you change your mind.
+</Tip>
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `⌘ ,` | Open Settings |
+| `⌘ S` | Save current section (when editing) |
+| `Esc` | Close Settings without saving |
+
+---
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/architecture/authentication">
+    Learn how PIPELINE secures your account
+  </Card>
+  <Card title="Export API" icon="download" href="/api/export">
+    API documentation for data exports
+  </Card>
+</CardGroup>
