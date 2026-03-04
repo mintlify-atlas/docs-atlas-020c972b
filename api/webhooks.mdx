@@ -1,0 +1,224 @@
+---
+title: 'Webhooks'
+description: 'Integrate with external services using webhooks for real-time notifications'
+icon: 'webhook'
+---
+
+## Overview
+
+PIPELINE supports webhook integrations to notify external services when events occur in your job tracking workflow. Currently, Discord webhooks are fully implemented with additional webhook types planned for v1.
+
+<Note>
+  Webhooks enable real-time notifications to Discord channels, Slack workspaces, and other services that support incoming webhooks.
+</Note>
+
+## Discord Webhooks
+
+### Event Types
+
+The following Discord webhook events are currently available:
+
+<AccordionGroup>
+  <Accordion title="job_created" icon="plus">
+    Triggered when a new job is saved to your pipeline.
+
+    **Payload Data:**
+    ```typescript
+    {
+      company: string;
+      title: string;
+      source: 'manual' | 'linkedin' | 'indeed' | 'github';
+      match_score?: number;
+      url?: string;
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="status_changed" icon="arrows-rotate">
+    Triggered when a job's status changes.
+
+    **Payload Data:**
+    ```typescript
+    {
+      company: string;
+      title: string;
+      old_status: 'saved' | 'applied' | 'interview' | 'offer' | 'rejected';
+      new_status: 'saved' | 'applied' | 'interview' | 'offer' | 'rejected';
+      interview_at?: string;
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="scraper_completed" icon="robot">
+    Triggered when a scraper finishes running.
+
+    **Payload Data:**
+    ```typescript
+    {
+      source: 'linkedin' | 'indeed' | 'github';
+      jobs_found: number;
+      jobs_new: number;
+      jobs_duplicates: number;
+      duration_seconds: number;
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="daily_digest" icon="calendar-day">
+    Triggered once per day with a summary of activity.
+
+    **Payload Data:**
+    ```typescript
+    {
+      date: string;
+      jobs_added: number;
+      applications_sent: number;
+      interviews_scheduled: number;
+      top_match: {
+        company: string;
+        title: string;
+        score: number;
+      };
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="error_alert" icon="triangle-exclamation">
+    Triggered when critical errors occur.
+
+    **Payload Data:**
+    ```typescript
+    {
+      title: string;
+      message: string;
+      error_code?: string;
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Configuration
+
+Set up Discord webhooks using environment variables:
+
+```bash .env
+DISCORD_WEBHOOK_ALERTS=https://discord.com/api/webhooks/...
+DISCORD_WEBHOOK_DIGEST=https://discord.com/api/webhooks/...
+```
+
+### Webhook Features
+
+<CardGroup cols={2}>
+  <Card title="Retry Logic" icon="rotate">
+    Automatic retry with exponential backoff (up to 3 attempts)
+  </Card>
+  <Card title="Circuit Breaker" icon="shield">
+    Temporarily disables webhooks after repeated failures
+  </Card>
+  <Card title="Rate Limiting" icon="gauge">
+    Respects Discord's rate limits automatically
+  </Card>
+  <Card title="Rich Embeds" icon="image">
+    Color-coded embeds with formatted data
+  </Card>
+</CardGroup>
+
+### Error Handling
+
+Webhook errors are handled gracefully:
+
+| Error Code | Description | Retry |
+|------------|-------------|-------|
+| `SEND_FAILED` | Generic send failure | Yes |
+| `RATE_LIMITED` | Discord rate limit hit | Yes (with delay) |
+| `CIRCUIT_OPEN` | Circuit breaker activated | No |
+| `INVALID_WEBHOOK` | Webhook URL invalid | No |
+| `TIMEOUT` | Request timed out | Yes |
+
+<Warning>
+  If webhooks fail repeatedly, the circuit breaker will temporarily disable them to prevent excessive retries. Check your webhook URL and Discord server settings.
+</Warning>
+
+## Planned Webhooks (v1)
+
+The following webhook integrations are planned for the v1 release:
+
+<Steps>
+  <Step title="Slack Webhooks">
+    Similar to Discord, post notifications to Slack channels
+  </Step>
+  <Step title="Custom HTTP Webhooks">
+    Send POST requests to any URL with custom payloads
+  </Step>
+  <Step title="Email Notifications">
+    Trigger email notifications via webhook events
+  </Step>
+  <Step title="Generic Webhook Events">
+    Subscribe to any event in the system
+  </Step>
+</Steps>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Security" icon="lock">
+    - Store webhook URLs in environment variables
+    - Use separate webhooks for different environments
+    - Rotate webhook URLs periodically
+    - Never commit webhook URLs to version control
+  </Accordion>
+
+  <Accordion title="Performance" icon="gauge-high">
+    - Webhooks are sent asynchronously to avoid blocking API requests
+    - Failed webhooks don't prevent the main operation from completing
+    - Circuit breaker prevents webhook storms
+  </Accordion>
+
+  <Accordion title="Monitoring" icon="chart-line">
+    - Check circuit breaker status if webhooks stop working
+    - Monitor Discord's rate limit headers
+    - Set up error alerts for webhook failures
+  </Accordion>
+</AccordionGroup>
+
+## Example: Discord Webhook Payload
+
+```json
+{
+  "embeds": [
+    {
+      "title": "📋 New Job Saved",
+      "description": "**Senior Software Engineer** at **Acme Corp**",
+      "url": "https://example.com/jobs/123",
+      "color": 9807270,
+      "fields": [
+        {
+          "name": "Source",
+          "value": "linkedin",
+          "inline": true
+        },
+        {
+          "name": "AI Match",
+          "value": "92%",
+          "inline": true
+        }
+      ],
+      "footer": {
+        "text": "Pipeline Job Tracker"
+      },
+      "timestamp": "2026-03-04T12:00:00Z"
+    }
+  ]
+}
+```
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Rate Limits" icon="gauge" href="/api/rate-limits">
+    Learn about API rate limiting
+  </Card>
+  <Card title="Error Codes" icon="triangle-exclamation" href="/api/errors">
+    View all error codes and handling
+  </Card>
+</CardGroup>

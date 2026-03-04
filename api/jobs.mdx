@@ -1,0 +1,691 @@
+---
+title: "Jobs API"
+description: "CRUD operations for managing job applications"
+---
+
+Manage job applications with full CRUD operations. All endpoints require authentication.
+
+## List Jobs
+
+<CodeGroup>
+```bash GET /api/jobs
+curl -X GET "https://api.pipeline.local/api/jobs?status=applied,interview&limit=20&page=1" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</CodeGroup>
+
+Fetch paginated list of jobs with filtering, search, and sorting.
+
+### Authentication
+
+Required. User can only access their own jobs (enforced by RLS).
+
+### Query Parameters
+
+<ParamField query="status" type="string">
+  Comma-separated job statuses to filter by.
+  
+  **Values:** `saved`, `applied`, `interview`, `offer`, `rejected`
+  
+  **Example:** `status=applied,interview`
+</ParamField>
+
+<ParamField query="source" type="string">
+  Filter by job source.
+  
+  **Values:** `brightermonday`, `fuzu`, `linkedin`, `manual`
+</ParamField>
+
+<ParamField query="since" type="string">
+  ISO 8601 timestamp. Only return jobs updated after this time.
+  
+  **Example:** `2026-03-01T00:00:00Z`
+</ParamField>
+
+<ParamField query="search" type="string">
+  Full-text search across company name and job title.
+  
+  **Max length:** 200 characters
+</ParamField>
+
+<ParamField query="is_remote" type="boolean">
+  Filter remote jobs.
+  
+  **Values:** `true` or `false`
+</ParamField>
+
+<ParamField query="min_score" type="number">
+  Minimum AI match score (0-100).
+  
+  **Example:** `min_score=75`
+</ParamField>
+
+<ParamField query="limit" type="number" default="100">
+  Maximum results per page.
+  
+  **Range:** 1-500
+</ParamField>
+
+<ParamField query="page" type="number" default="1">
+  Page number (1-indexed).
+</ParamField>
+
+<ParamField query="sort" type="string" default="created_at">
+  Field to sort by.
+  
+  **Values:** `created_at`, `updated_at`, `ai_match_score`, `company_name`
+</ParamField>
+
+<ParamField query="order" type="string" default="desc">
+  Sort order.
+  
+  **Values:** `asc`, `desc`
+</ParamField>
+
+### Response
+
+<ResponseField name="data" type="array" required>
+  Array of job objects.
+  
+  <Expandable title="Job Object">
+    <ResponseField name="id" type="string" required>
+      UUID of the job.
+    </ResponseField>
+    
+    <ResponseField name="user_id" type="string" required>
+      Owner's user ID.
+    </ResponseField>
+    
+    <ResponseField name="company_name" type="string" required>
+      Company name.
+    </ResponseField>
+    
+    <ResponseField name="job_title" type="string" required>
+      Job title/position.
+    </ResponseField>
+    
+    <ResponseField name="job_description" type="string">
+      Full job description.
+    </ResponseField>
+    
+    <ResponseField name="job_url" type="string">
+      Link to job posting (HTTPS only).
+    </ResponseField>
+    
+    <ResponseField name="source" type="string" required>
+      Job source: `brightermonday`, `fuzu`, `linkedin`, or `manual`.
+    </ResponseField>
+    
+    <ResponseField name="status" type="string" required>
+      Application status: `saved`, `applied`, `interview`, `offer`, or `rejected`.
+    </ResponseField>
+    
+    <ResponseField name="ai_match_score" type="number">
+      AI match score (0-100). `null` if not yet scored.
+    </ResponseField>
+    
+    <ResponseField name="ai_reasoning" type="string">
+      AI explanation for match score.
+    </ResponseField>
+    
+    <ResponseField name="ai_parsed_data" type="object">
+      Structured data extracted by AI.
+      
+      <Expandable title="Properties">
+        <ResponseField name="skills" type="array">
+          Extracted skill tags.
+        </ResponseField>
+        
+        <ResponseField name="requirements" type="array">
+          Job requirements.
+        </ResponseField>
+        
+        <ResponseField name="salary_range" type="object">
+          Salary information.
+          
+          <Expandable title="Properties">
+            <ResponseField name="min" type="number">
+              Minimum salary.
+            </ResponseField>
+            
+            <ResponseField name="max" type="number">
+              Maximum salary.
+            </ResponseField>
+            
+            <ResponseField name="currency" type="string">
+              Currency code (e.g., `USD`).
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+        
+        <ResponseField name="remote" type="boolean">
+          Whether job is remote.
+        </ResponseField>
+        
+        <ResponseField name="experience_level" type="string">
+          Required experience: `junior`, `mid`, `senior`, `lead`, or `staff`.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="applied_at" type="string">
+      ISO 8601 timestamp of application.
+    </ResponseField>
+    
+    <ResponseField name="interview_at" type="string">
+      ISO 8601 timestamp of interview.
+    </ResponseField>
+    
+    <ResponseField name="offer_at" type="string">
+      ISO 8601 timestamp of offer.
+    </ResponseField>
+    
+    <ResponseField name="rejected_at" type="string">
+      ISO 8601 timestamp of rejection.
+    </ResponseField>
+    
+    <ResponseField name="notes" type="string">
+      User notes.
+    </ResponseField>
+    
+    <ResponseField name="tags" type="array">
+      User-defined tags.
+    </ResponseField>
+    
+    <ResponseField name="salary_range_min" type="number">
+      Minimum salary (integer, e.g., 180000).
+    </ResponseField>
+    
+    <ResponseField name="salary_range_max" type="number">
+      Maximum salary (integer, e.g., 250000).
+    </ResponseField>
+    
+    <ResponseField name="location" type="string">
+      Job location.
+    </ResponseField>
+    
+    <ResponseField name="is_remote" type="boolean">
+      Whether job is remote.
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="string" required>
+      ISO 8601 timestamp of creation.
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="string" required>
+      ISO 8601 timestamp of last update.
+    </ResponseField>
+    
+    <ResponseField name="scraped_at" type="string">
+      ISO 8601 timestamp of last scrape.
+    </ResponseField>
+    
+    <ResponseField name="last_synced_at" type="string">
+      ISO 8601 timestamp of last sync.
+    </ResponseField>
+    
+    <ResponseField name="deleted_at" type="string">
+      ISO 8601 timestamp of soft delete.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="total" type="number" required>
+  Total count across all pages.
+</ResponseField>
+
+<ResponseField name="page" type="number" required>
+  Current page number.
+</ResponseField>
+
+<ResponseField name="limit" type="number" required>
+  Items per page.
+</ResponseField>
+
+<ResponseField name="has_more" type="boolean" required>
+  Whether more pages exist.
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "data": [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "user_id": "user_abc123",
+      "company_name": "Acme Corp",
+      "job_title": "Senior Backend Engineer",
+      "job_description": "Build scalable APIs...",
+      "job_url": "https://acme.com/careers/senior-backend-engineer",
+      "source": "linkedin",
+      "status": "applied",
+      "ai_match_score": 87,
+      "ai_reasoning": "Strong match: 5+ years Go experience, distributed systems expertise",
+      "ai_parsed_data": {
+        "skills": ["Go", "PostgreSQL", "Docker", "Kubernetes"],
+        "experience_level": "senior",
+        "remote": true
+      },
+      "applied_at": "2026-03-01T10:30:00Z",
+      "interview_at": null,
+      "offer_at": null,
+      "rejected_at": null,
+      "notes": "Met recruiter at tech conference",
+      "tags": ["high-priority", "backend"],
+      "salary_range_min": 180000,
+      "salary_range_max": 250000,
+      "location": "San Francisco, CA",
+      "is_remote": true,
+      "created_at": "2026-02-28T15:00:00Z",
+      "updated_at": "2026-03-01T10:30:00Z",
+      "scraped_at": null,
+      "last_synced_at": null,
+      "deleted_at": null
+    }
+  ],
+  "total": 42,
+  "page": 1,
+  "limit": 20,
+  "has_more": true
+}
+```
+
+### Status: ✅ Live
+
+This endpoint is fully implemented. See `app/api/jobs/route.ts:13`.
+
+---
+
+## Create Job
+
+<CodeGroup>
+```bash POST /api/jobs
+curl -X POST "https://api.pipeline.local/api/jobs" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "company_name": "Acme Corp",
+    "job_title": "Senior Backend Engineer",
+    "job_url": "https://acme.com/careers/123",
+    "source": "linkedin",
+    "status": "saved",
+    "location": "San Francisco, CA",
+    "is_remote": true,
+    "salary_range_min": 180000,
+    "salary_range_max": 250000
+  }'
+```
+</CodeGroup>
+
+Create a new job application.
+
+### Authentication
+
+Required. Job is automatically associated with authenticated user.
+
+### Request Body
+
+<ParamField body="company_name" type="string" required>
+  Company name.
+  
+  **Max length:** 255 characters
+</ParamField>
+
+<ParamField body="job_title" type="string" required>
+  Job title/position.
+  
+  **Max length:** 255 characters
+</ParamField>
+
+<ParamField body="job_description" type="string">
+  Full job description.
+</ParamField>
+
+<ParamField body="job_url" type="string">
+  Link to job posting.
+  
+  **Must be HTTPS** (enforced by database constraint)
+</ParamField>
+
+<ParamField body="source" type="string" required>
+  Job source.
+  
+  **Values:** `brightermonday`, `fuzu`, `linkedin`, `manual`
+</ParamField>
+
+<ParamField body="status" type="string" default="saved">
+  Initial status.
+  
+  **Values:** `saved`, `applied`, `interview`, `offer`, `rejected`
+</ParamField>
+
+<ParamField body="location" type="string">
+  Job location.
+</ParamField>
+
+<ParamField body="is_remote" type="boolean">
+  Whether job is remote.
+</ParamField>
+
+<ParamField body="salary_range_min" type="number">
+  Minimum salary (integer, e.g., 180000).
+</ParamField>
+
+<ParamField body="salary_range_max" type="number">
+  Maximum salary (integer, e.g., 250000).
+</ParamField>
+
+<ParamField body="tags" type="array">
+  User-defined tags.
+  
+  **Example:** `["high-priority", "backend"]`
+</ParamField>
+
+### Response
+
+<ResponseField name="data" type="object" required>
+  The created job object (same schema as List Jobs).
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "user_id": "user_abc123",
+    "company_name": "Acme Corp",
+    "job_title": "Senior Backend Engineer",
+    "job_url": "https://acme.com/careers/123",
+    "source": "linkedin",
+    "status": "saved",
+    "location": "San Francisco, CA",
+    "is_remote": true,
+    "salary_range_min": 180000,
+    "salary_range_max": 250000,
+    "created_at": "2026-03-04T10:00:00Z",
+    "updated_at": "2026-03-04T10:00:00Z",
+    "ai_match_score": null,
+    "ai_reasoning": null,
+    "notes": null,
+    "tags": null,
+    "deleted_at": null
+  }
+}
+```
+
+### Errors
+
+<ResponseField name="error" type="object">
+  <Expandable title="Error Object">
+    <ResponseField name="code" type="string" required>
+      Error code: `VALIDATION_ERROR`, `INVALID_JSON`, `UNAUTHORIZED`, `INTERNAL_ERROR`
+    </ResponseField>
+    
+    <ResponseField name="message" type="string" required>
+      Human-readable error message.
+    </ResponseField>
+    
+    <ResponseField name="details" type="array">
+      Validation errors (if `code` is `VALIDATION_ERROR`).
+      
+      Each item contains `path`, `message`, and `code` from Zod validation.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Status: ✅ Live
+
+This endpoint is fully implemented. See `app/api/jobs/route.ts:129`.
+
+**Note:** A `job_created` event is automatically logged by database trigger (`log_job_changes`).
+
+---
+
+## Get Job
+
+<CodeGroup>
+```bash GET /api/jobs/:id
+curl -X GET "https://api.pipeline.local/api/jobs/123e4567-e89b-12d3-a456-426614174000" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</CodeGroup>
+
+Fetch a single job by ID with recent events.
+
+### Authentication
+
+Required. User can only access their own jobs.
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Job UUID.
+</ParamField>
+
+### Response
+
+<ResponseField name="data" type="object" required>
+  Job object (same schema as List Jobs).
+</ResponseField>
+
+<ResponseField name="events" type="array" required>
+  Last 20 events for this job, ordered by `created_at` descending.
+  
+  <Expandable title="Event Object">
+    <ResponseField name="id" type="string" required>
+      Event UUID.
+    </ResponseField>
+    
+    <ResponseField name="user_id" type="string" required>
+      User ID.
+    </ResponseField>
+    
+    <ResponseField name="job_id" type="string">
+      Related job ID.
+    </ResponseField>
+    
+    <ResponseField name="event_type" type="string" required>
+      Event type: `job_created`, `status_changed`, `ai_scored`, `note_added`, `application_sent`, `interview_scheduled`, `offer_received`, `rejected`.
+    </ResponseField>
+    
+    <ResponseField name="event_data" type="object">
+      Event metadata (e.g., `{ "old_status": "saved", "new_status": "applied" }`).
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="string" required>
+      ISO 8601 timestamp.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "company_name": "Acme Corp",
+    "job_title": "Senior Backend Engineer",
+    "status": "interview",
+    "created_at": "2026-02-28T15:00:00Z",
+    "updated_at": "2026-03-02T09:00:00Z"
+  },
+  "events": [
+    {
+      "id": "evt_001",
+      "user_id": "user_abc123",
+      "job_id": "123e4567-e89b-12d3-a456-426614174000",
+      "event_type": "status_changed",
+      "event_data": {
+        "old_status": "applied",
+        "new_status": "interview"
+      },
+      "created_at": "2026-03-02T09:00:00Z"
+    },
+    {
+      "id": "evt_002",
+      "event_type": "status_changed",
+      "event_data": {
+        "old_status": "saved",
+        "new_status": "applied"
+      },
+      "created_at": "2026-03-01T10:30:00Z"
+    }
+  ]
+}
+```
+
+### Errors
+
+- **404 Not Found** — Job doesn't exist or doesn't belong to user
+- **401 Unauthorized** — Missing or invalid auth token
+- **500 Internal Error** — Database error
+
+### Status: ✅ Live
+
+This endpoint is fully implemented. See `app/api/jobs/[id]/route.ts:12`.
+
+---
+
+## Update Job
+
+<CodeGroup>
+```bash PATCH /api/jobs/:id
+curl -X PATCH "https://api.pipeline.local/api/jobs/123e4567-e89b-12d3-a456-426614174000" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "interview",
+    "interview_at": "2026-03-10T14:00:00Z",
+    "notes": "Phone screen scheduled for next week"
+  }'
+```
+</CodeGroup>
+
+Update an existing job. All fields are optional; only provided fields are updated.
+
+### Authentication
+
+Required. User can only update their own jobs.
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Job UUID.
+</ParamField>
+
+### Request Body
+
+All fields optional. Same schema as Create Job, plus:
+
+<ParamField body="status" type="string">
+  Update application status.
+  
+  **Values:** `saved`, `applied`, `interview`, `offer`, `rejected`
+</ParamField>
+
+<ParamField body="notes" type="string">
+  User notes.
+</ParamField>
+
+<ParamField body="interview_at" type="string">
+  ISO 8601 timestamp of interview.
+</ParamField>
+
+<ParamField body="applied_at" type="string">
+  ISO 8601 timestamp of application.
+</ParamField>
+
+<ParamField body="offer_at" type="string">
+  ISO 8601 timestamp of offer.
+</ParamField>
+
+<ParamField body="rejected_at" type="string">
+  ISO 8601 timestamp of rejection.
+</ParamField>
+
+### Response
+
+<ResponseField name="data" type="object" required>
+  Updated job object (same schema as List Jobs).
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "company_name": "Acme Corp",
+    "job_title": "Senior Backend Engineer",
+    "status": "interview",
+    "interview_at": "2026-03-10T14:00:00Z",
+    "notes": "Phone screen scheduled for next week",
+    "updated_at": "2026-03-04T11:00:00Z"
+  }
+}
+```
+
+### Errors
+
+- **404 Not Found** — Job doesn't exist or doesn't belong to user
+- **400 Validation Error** — Invalid input
+- **401 Unauthorized** — Missing or invalid auth token
+- **500 Internal Error** — Database error
+
+### Status: ✅ Live
+
+This endpoint is fully implemented. See `app/api/jobs/[id]/route.ts:61`.
+
+**Note:** A `status_changed` event is automatically logged by database trigger if status changed.
+
+---
+
+## Delete Job
+
+<CodeGroup>
+```bash DELETE /api/jobs/:id
+curl -X DELETE "https://api.pipeline.local/api/jobs/123e4567-e89b-12d3-a456-426614174000" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</CodeGroup>
+
+Soft-delete a job by setting `deleted_at` timestamp. Job remains in database but is excluded from queries.
+
+### Authentication
+
+Required. User can only delete their own jobs.
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Job UUID.
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean" required>
+  Always `true` on success.
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "success": true
+}
+```
+
+### Errors
+
+- **404 Not Found** — Job doesn't exist, doesn't belong to user, or already deleted
+- **401 Unauthorized** — Missing or invalid auth token
+- **500 Internal Error** — Database error
+
+### Status: ✅ Live
+
+This endpoint is fully implemented. See `app/api/jobs/[id]/route.ts:150`.
+
+**Note:** Soft delete allows recovery via database if needed. To permanently delete, admins can run `DELETE FROM jobs WHERE deleted_at IS NOT NULL`.

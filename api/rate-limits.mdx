@@ -1,0 +1,320 @@
+---
+title: 'Rate Limits'
+description: 'Understand API rate limits and how to handle rate limit errors'
+icon: 'gauge'
+---
+
+## Overview
+
+PIPELINE API implements rate limiting to ensure fair usage and protect against abuse. Rate limits are enforced per client IP address or user identifier.
+
+<Note>
+  Rate limits reset automatically after the specified time window. All responses include rate limit headers to help you track your usage.
+</Note>
+
+## Rate Limit Tiers
+
+<CardGroup cols={2}>
+  <Card title="General API" icon="server">
+    **100 requests per minute**
+    
+    Applies to most API endpoints including jobs CRUD, dashboard stats, and data retrieval.
+  </Card>
+  
+  <Card title="Authentication" icon="key">
+    **5 requests per minute**
+    
+    Stricter limit for login, signup, and password reset endpoints to prevent brute force attacks.
+  </Card>
+  
+  <Card title="Scraper Triggers" icon="robot">
+    **10 requests per hour**
+    
+    Prevents excessive scraper runs that could overload job board sources.
+  </Card>
+  
+  <Card title="Export Operations" icon="download">
+    **10 requests per hour**
+    
+    Limits data export operations to prevent bulk data scraping.
+  </Card>
+</CardGroup>
+
+## Rate Limit Headers
+
+Every API response includes rate limit information in the headers:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1709568000000
+```
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Maximum requests allowed in the time window |
+| `X-RateLimit-Remaining` | Requests remaining in the current window |
+| `X-RateLimit-Reset` | Unix timestamp (ms) when the limit resets |
+
+## Rate Limit Errors
+
+When you exceed a rate limit, the API returns a `429 Too Many Requests` error:
+
+```json
+{
+  "code": "RATE_LIMIT_EXCEEDED",
+  "status": 429,
+  "message": "Rate limit exceeded",
+  "details": {
+    "retryAfter": 60,
+    "limit": 100,
+    "remaining": 0,
+    "resetAt": "2026-03-04T12:01:00Z"
+  },
+  "timestamp": "2026-03-04T12:00:00Z",
+  "apiVersion": "1.0"
+}
+```
+
+### Error Response Fields
+
+<ResponseField name="retryAfter" type="number">
+  Number of seconds to wait before retrying
+</ResponseField>
+
+<ResponseField name="limit" type="number">
+  The rate limit that was exceeded
+</ResponseField>
+
+<ResponseField name="remaining" type="number">
+  Will always be `0` in rate limit errors
+</ResponseField>
+
+<ResponseField name="resetAt" type="string">
+  ISO 8601 timestamp when the rate limit resets
+</ResponseField>
+
+### Additional Headers
+
+Rate limit error responses include an additional header:
+
+```http
+Retry-After: 60
+```
+
+This tells you how many seconds to wait before retrying the request.
+
+## Rate Limit Strategy
+
+<Note>
+  **Current Implementation:** In-memory rate limiting suitable for development and single-instance deployments.
+  
+  **Production Recommendation:** For multi-instance production deployments, consider Redis-based rate limiting (e.g., `@upstash/ratelimit`).
+</Note>
+
+### How It Works
+
+1. **Sliding Window**: Rate limits use a sliding time window algorithm
+2. **IP-Based**: Requests are tracked by client IP address (from `X-Forwarded-For` or `X-Real-IP` headers)
+3. **Automatic Cleanup**: Old request records are cleaned up every 10 minutes
+
+### Limitations
+
+The current in-memory implementation has these limitations:
+
+<Warning>
+  - Rate limits reset on server restart
+  - Not shared across multiple server instances
+  - Memory grows with unique client identifiers
+</Warning>
+
+For production deployments with multiple instances, implement Redis-based rate limiting to ensure consistent limits across all servers.
+
+## Handling Rate Limits
+
+### Exponential Backoff
+
+Implement exponential backoff when you receive rate limit errors:
+
+```typescript
+async function fetchWithRetry(url: string, maxRetries = 3) {
+  let delay = 1000; // Start with 1 second
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url);
+      
+      if (response.status === 429) {
+        if (attempt === maxRetries) throw new Error('Max retries reached');
+        
+        // Use Retry-After header if provided
+        const retryAfter = response.headers.get('Retry-After');
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : delay;
+        
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        delay *= 2; // Exponential backoff
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2;
+    }
+  }
+}
+```
+
+### Check Headers Proactively
+
+Monitor rate limit headers to avoid hitting limits:
+
+```typescript
+function checkRateLimitHeaders(response: Response) {
+  const remaining = parseInt(response.headers.get('X-RateLimit-Remaining') || '0');
+  const reset = parseInt(response.headers.get('X-RateLimit-Reset') || '0');
+  
+  if (remaining < 10) {
+    console.warn(`Only ${remaining} requests remaining until ${new Date(reset)}`);
+  }
+}
+```
+
+### Batch Requests
+
+Instead of making many individual requests, batch your operations:
+
+```typescript
+// ❌ Bad: Multiple requests
+for (const jobId of jobIds) {
+  await fetch(`/api/jobs/${jobId}`);
+}
+
+// ✅ Good: Single batch request
+const jobs = await fetch('/api/jobs', {
+  method: 'POST',
+  body: JSON.stringify({ ids: jobIds })
+});
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Cache Responses" icon="database">
+    Cache API responses on the client side to reduce the number of requests:
+    
+    - Use React Query or SWR for automatic caching
+    - Implement browser localStorage for persistent caching
+    - Set appropriate cache TTLs based on data freshness requirements
+  </Accordion>
+
+  <Accordion title="Respect Headers" icon="hand">
+    Always check rate limit headers and respect `Retry-After`:
+    
+    - Read `X-RateLimit-Remaining` before making requests
+    - Use `Retry-After` header value for retry timing
+    - Implement circuit breakers for repeated failures
+  </Accordion>
+
+  <Accordion title="Implement Backoff" icon="clock">
+    Use exponential backoff with jitter:
+    
+    - Start with 1-2 second delays
+    - Double the delay on each retry
+    - Add random jitter to prevent thundering herd
+    - Cap maximum delay at 30-60 seconds
+  </Accordion>
+
+  <Accordion title="Monitor Usage" icon="chart-line">
+    Track your API usage patterns:
+    
+    - Log rate limit headers in development
+    - Set up alerts for approaching limits
+    - Monitor 429 error rates
+    - Optimize request patterns based on usage data
+  </Accordion>
+</AccordionGroup>
+
+## Service-Specific Limits
+
+### AI Matching Service
+
+The AI matching service has additional rate limiting:
+
+```typescript
+{
+  code: 'AI_RATE_LIMIT',
+  status: 429,
+  message: 'AI rate limit exceeded. Please wait before trying again.',
+  details: {
+    retryAfter: 3600,  // 1 hour
+    limit: 20,
+    remaining: 0,
+    resetAt: '2026-03-04T13:00:00Z'
+  }
+}
+```
+
+**Limit:** 20 AI matching requests per hour per user
+
+### Scraper Service
+
+Scraper runs are strictly limited:
+
+```typescript
+{
+  code: 'SCRAPER_RATE_LIMIT',
+  status: 429,
+  message: 'Scraper rate limit exceeded. Please wait an hour.',
+  details: {
+    retryAfter: 3600,  // 1 hour
+    limit: 10,
+    remaining: 0,
+    resetAt: '2026-03-04T13:00:00Z'
+  }
+}
+```
+
+**Limit:** 10 scraper runs per hour per user
+
+## Increasing Limits
+
+<Info>
+  Rate limits are fixed in the current version. For higher limits, consider:
+  
+  - Optimizing your request patterns
+  - Implementing client-side caching
+  - Batching operations
+  - Self-hosting with custom rate limit configuration
+</Info>
+
+## Future Enhancements
+
+Planned improvements for v1:
+
+<Steps>
+  <Step title="Redis-Based Limiting">
+    Consistent rate limiting across multiple server instances
+  </Step>
+  <Step title="Per-User Limits">
+    Track limits by authenticated user ID instead of IP
+  </Step>
+  <Step title="Tiered Plans">
+    Different rate limits for free vs. paid users
+  </Step>
+  <Step title="Burst Allowance">
+    Allow short bursts above the limit with token bucket algorithm
+  </Step>
+</Steps>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Error Codes" icon="triangle-exclamation" href="/api/errors">
+    View all error codes and handling
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/api/webhooks">
+    Learn about webhook rate limits
+  </Card>
+</CardGroup>

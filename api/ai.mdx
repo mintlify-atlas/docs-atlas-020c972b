@@ -1,0 +1,395 @@
+---
+title: "AI API"
+description: "AI-powered job scoring and insights"
+---
+
+AI endpoints for job match scoring and intelligent insights. All endpoints require authentication.
+
+<Note>
+  **Status:** AI endpoints are currently **stubs** and return `501 Not Implemented`. Implementation is planned for Phase 2 (see BACKEND_STATUS.md).
+</Note>
+
+## Get AI Insights
+
+<CodeGroup>
+```bash GET /api/ai/insights
+curl -X GET "https://api.pipeline.local/api/ai/insights" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</CodeGroup>
+
+Generate AI-powered insights based on job application patterns.
+
+### Authentication
+
+Required. User can only access their own insights.
+
+### Planned Features
+
+- **Pattern Detection:** Identify trends in successful applications (e.g., "Companies with 'remote-first' in description have 3x higher response rate")
+- **Recommendations:** Suggest high-potential jobs based on match score and historical success
+- **Market Analysis:** Compare your application stats to anonymized aggregate data
+- **Success Prediction:** Estimate likelihood of getting an interview based on job characteristics
+
+### Query Parameters (Planned)
+
+<ParamField query="type" type="string">
+  Insight type to generate.
+  
+  **Values:**
+  - `daily_digest` — Daily summary of activity
+  - `pattern_detection` — Identify success patterns
+  - `recommendation` — Job recommendations
+  - `weekly_summary` — Weekly overview
+  - `market_analysis` — Market trends
+</ParamField>
+
+<ParamField query="limit" type="number" default="10">
+  Maximum insights to return.
+</ParamField>
+
+### Response (Planned)
+
+<ResponseField name="insights" type="array" required>
+  Array of insight objects.
+  
+  <Expandable title="Insight Object">
+    <ResponseField name="id" type="string" required>
+      Insight UUID.
+    </ResponseField>
+    
+    <ResponseField name="user_id" type="string" required>
+      User ID.
+    </ResponseField>
+    
+    <ResponseField name="insight_type" type="string" required>
+      Insight type.
+    </ResponseField>
+    
+    <ResponseField name="title" type="string" required>
+      Insight headline.
+    </ResponseField>
+    
+    <ResponseField name="content" type="string" required>
+      Detailed insight content (Markdown).
+    </ResponseField>
+    
+    <ResponseField name="metadata" type="object">
+      Additional data (e.g., confidence score, supporting stats).
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="string" required>
+      ISO 8601 timestamp.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="has_more" type="boolean" required>
+  Whether more insights are available.
+</ResponseField>
+
+### Example Response (Planned)
+
+```json
+{
+  "insights": [
+    {
+      "id": "ins_001",
+      "user_id": "user_abc123",
+      "insight_type": "pattern_detection",
+      "title": "Remote jobs have higher response rates",
+      "content": "Jobs marked as remote receive responses 2.3x faster (avg 4.2 days vs 9.7 days). Consider prioritizing remote positions.",
+      "metadata": {
+        "confidence": 0.87,
+        "sample_size": 24,
+        "remote_response_time": 4.2,
+        "non_remote_response_time": 9.7
+      },
+      "created_at": "2026-03-04T08:00:00Z"
+    },
+    {
+      "id": "ins_002",
+      "insight_type": "recommendation",
+      "title": "3 high-potential jobs match your profile",
+      "content": "Based on your experience, these positions have 85%+ match scores and are from companies with fast response times.",
+      "metadata": {
+        "recommended_job_ids": ["job_001", "job_002", "job_003"],
+        "avg_match_score": 88.3
+      },
+      "created_at": "2026-03-04T08:00:00Z"
+    }
+  ],
+  "has_more": false
+}
+```
+
+### Implementation Plan
+
+**AI Service:** Gemini 1.5 Pro (Google AI)
+
+**Workflow:**
+1. Fetch user's jobs + events from database
+2. Build structured prompt with:
+   - Job data (company, title, status, timestamps)
+   - Application patterns (success rate by source, response times)
+   - Recent activity
+3. Call Gemini API with few-shot examples
+4. Parse response and store in `insights` table
+5. Return cached insights if fresh (< 1 hour old)
+
+**Rate Limiting:** 20 requests/hour (AI endpoints are expensive)
+
+### Status: ❌ Not Implemented
+
+Currently returns:
+```json
+{
+  "error": "Not implemented"
+}
+```
+**HTTP Status:** 501 Not Implemented
+
+See `app/api/ai/insights/route.ts:5` and `docs/backend/06-AI.md` for implementation details.
+
+---
+
+## Generate Digest
+
+<CodeGroup>
+```bash GET /api/ai/digest
+curl -X GET "https://api.pipeline.local/api/ai/digest" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</CodeGroup>
+
+Generate a personalized digest of recent job search activity.
+
+### Authentication
+
+Required. User can only generate their own digest.
+
+### Planned Features
+
+- **Daily Digest:** Summary of yesterday's activity (applications sent, responses received, upcoming interviews)
+- **Weekly Summary:** Week in review with stats and insights
+- **Smart Prioritization:** Highlight time-sensitive actions (e.g., "3 applications need follow-up")
+- **Encouragement:** Motivational messaging based on progress
+
+### Query Parameters (Planned)
+
+<ParamField query="type" type="string" default="daily_digest">
+  Digest type.
+  
+  **Values:**
+  - `daily_digest` — Last 24 hours
+  - `weekly_summary` — Last 7 days
+</ParamField>
+
+<ParamField query="include_recommendations" type="boolean" default="true">
+  Include job recommendations in digest.
+</ParamField>
+
+### Response (Planned)
+
+<ResponseField name="insight" type="object" required>
+  Digest insight object (same schema as Get AI Insights).
+</ResponseField>
+
+### Example Response (Planned)
+
+```json
+{
+  "insight": {
+    "id": "ins_daily_2026_03_04",
+    "user_id": "user_abc123",
+    "insight_type": "daily_digest",
+    "title": "Your Daily Job Search Update",
+    "content": "## Yesterday's Highlights\n\n✅ **2 applications sent**\n- Acme Corp — Senior Backend Engineer\n- TechCo — Full Stack Developer\n\n📩 **1 response received**\n- BestStartup replied to your application (7 days)\n\n📅 **Upcoming**\n- Phone screen with Acme Corp tomorrow at 2 PM\n\n## Recommendations\n\n3 new high-match jobs were posted (avg score: 86%). Consider applying soon.\n\n---\n\n*Keep up the momentum! You're 15% ahead of last week's pace.*",
+    "metadata": {
+      "stats": {
+        "applications_sent": 2,
+        "responses_received": 1,
+        "upcoming_interviews": 1
+      },
+      "recommendations_count": 3
+    },
+    "created_at": "2026-03-04T08:00:00Z"
+  }
+}
+```
+
+### Implementation Plan
+
+**AI Service:** Claude 3.5 Sonnet (Anthropic)
+
+**Workflow:**
+1. Fetch recent events (last 24h for daily, 7d for weekly)
+2. Aggregate stats:
+   - Applications sent
+   - Status changes
+   - Upcoming interviews (from `interview_at` field)
+   - Response times
+3. Build structured prompt with context
+4. Call Claude API for natural language generation
+5. Store generated digest in `insights` table
+6. Optionally send via Discord webhook or email
+
+**Scheduling:** Run via cron job daily at 8 AM user's timezone
+
+**Caching:** Digests are cached for 1 hour; subsequent requests return cached version
+
+### Status: ❌ Not Implemented
+
+Currently returns:
+```json
+{
+  "error": "Not implemented"
+}
+```
+**HTTP Status:** 501 Not Implemented
+
+See `app/api/ai/digest/route.ts:5` and `docs/backend/06-AI.md` for implementation details.
+
+---
+
+## Job Scoring (Planned)
+
+While not exposed as a direct API endpoint, job scoring happens automatically:
+
+### When Jobs Are Scored
+
+1. **New job created** — Scored asynchronously after creation
+2. **Job updated** — Re-scored if description or requirements change
+3. **Manual trigger** — User can request re-scoring from UI
+
+### Scoring Algorithm (Planned)
+
+**AI Model:** Gemini 1.5 Flash (fast + cost-effective)
+
+**Input:**
+- Job description
+- Company name
+- User's profile (extracted from past applications)
+- User's resume (if uploaded)
+
+**Output:**
+- `ai_match_score` (0-100)
+- `ai_reasoning` (explanation)
+- `ai_parsed_data` (extracted skills, salary, experience level)
+
+**Prompt Strategy:**
+```
+You are an expert career advisor. Analyze this job posting and rate its fit for the candidate.
+
+Job:
+Title: {job_title}
+Company: {company_name}
+Description: {job_description}
+
+Candidate Profile:
+{user_profile}
+
+Provide:
+1. Match score (0-100)
+2. Reasoning (2-3 sentences)
+3. Extracted data (skills, salary range, experience level)
+```
+
+### Database Updates
+
+Scoring automatically updates:
+- `jobs.ai_match_score`
+- `jobs.ai_reasoning`
+- `jobs.ai_parsed_data`
+- Creates `ai_scored` event
+
+### Status: ❌ Not Implemented
+
+AI scoring is planned for Phase 2. See `docs/backend/06-AI.md` for full specification.
+
+---
+
+## Errors
+
+All AI endpoints return standard error responses:
+
+<ResponseField name="error" type="object">
+  <Expandable title="Error Object">
+    <ResponseField name="code" type="string" required>
+      Error code: `UNAUTHORIZED`, `AI_SERVICE_ERROR`, `RATE_LIMIT_EXCEEDED`, `INTERNAL_ERROR`
+    </ResponseField>
+    
+    <ResponseField name="message" type="string" required>
+      Human-readable error message.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Common Errors (Planned)
+
+- **401 Unauthorized** — Missing or invalid auth token
+- **429 Rate Limited** — Exceeded 20 requests/hour limit
+- **500 AI Service Error** — Gemini/Claude API error
+- **501 Not Implemented** — Current stub response
+- **503 Service Unavailable** — AI service temporarily down
+
+### Example Error Response
+
+```json
+{
+  "error": {
+    "code": "AI_SERVICE_ERROR",
+    "message": "Failed to generate insight. Please try again."
+  }
+}
+```
+
+---
+
+## Rate Limiting
+
+AI endpoints have strict rate limits due to API costs:
+
+- **Standard Users:** 20 requests/hour
+- **Reset:** Top of each hour (UTC)
+- **Headers:** Rate limit info included in response:
+  ```
+  X-RateLimit-Limit: 20
+  X-RateLimit-Remaining: 15
+  X-RateLimit-Reset: 1709550000
+  ```
+
+### Exceeding Limits
+
+When rate limited:
+```json
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "You have exceeded your hourly limit for AI requests. Try again in 23 minutes."
+  }
+}
+```
+**HTTP Status:** 429 Too Many Requests
+
+---
+
+## Implementation Timeline
+
+AI features are planned for **Phase 2** (Week 2):
+
+| Feature | Priority | Estimated Effort |
+|---------|----------|------------------|
+| Job Scoring (Gemini) | 🔴 High | 4-6 hours |
+| Daily Digest (Claude) | 🟡 Medium | 3-4 hours |
+| Pattern Detection | 🟢 Low | 4-6 hours |
+| Market Analysis | 🟢 Low | 4-6 hours |
+
+**Total:** 15-22 hours
+
+**Dependencies:**
+- API keys (Google AI, Anthropic)
+- Jobs API must be complete first
+- User profile data for personalization
+
+See `docs/backend/06-AI.md` and `BACKEND_STATUS.md` for full implementation plan.

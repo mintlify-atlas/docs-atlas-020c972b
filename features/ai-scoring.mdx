@@ -1,0 +1,607 @@
+---
+title: 'AI Scoring'
+description: 'Understand how PIPELINE calculates AI match scores to help you prioritize the best job opportunities.'
+icon: 'sparkles'
+---
+
+## Overview
+
+Every job in PIPELINE receives an **AI Match Score** between 0-100% that indicates how well it aligns with your skills, experience, and preferences.
+
+<Info>
+  AI scores are calculated automatically when jobs are scraped or manually added, using your profile data and job description analysis.
+</Info>
+
+## Score Visualization
+
+### AI Score Circle
+
+The score is displayed as a circular progress indicator with color-coded labels:
+
+<CardGroup cols={4}>
+  <Card title="Excellent" icon="check" color="#d9d9d9">
+    80-100%
+    Light gray gradient
+  </Card>
+  <Card title="Good" icon="star" color="#f59e0b">
+    60-79%
+    Amber gradient
+  </Card>
+  <Card title="Fair" icon="minus" color="#ffff00">
+    40-59%
+    Yellow to red gradient
+  </Card>
+  <Card title="Poor" icon="x" color="#ff4444">
+    0-39%
+    Red to magenta gradient
+  </Card>
+</CardGroup>
+
+```tsx
+// AI Score Circle component (src/components/jobs/ai-score-circle.tsx:13-98)
+export function AIScoreCircle({ score, size = 'md' }: AIScoreCircleProps) {
+  if (score === null) {
+    return (
+      <div className="rounded-full bg-terminal-500/10 border border-terminal-500/20">
+        <span className="text-[10px] font-mono">N/A</span>
+      </div>
+    )
+  }
+
+  const { color, label, gradient } = getScoreConfig(score)
+  
+  // SVG circle with gradient stroke
+  return (
+    <div className="relative flex items-center justify-center">
+      <svg>
+        <circle
+          stroke={`url(#gradient-${size}-${score})`}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+        />
+      </svg>
+      <div className="absolute">
+        <span className="font-bold">{score}%</span>
+        <span className="text-[8px]">{label}</span>
+      </div>
+    </div>
+  )
+}
+```
+
+<Frame>
+</Frame>
+
+### Score Configuration
+
+```typescript
+// Score thresholds and colors (src/components/jobs/ai-score-circle.tsx:100-127)
+function getScoreConfig(score: number) {
+  if (score >= 80) {
+    return {
+      color: 'hsl(0 0% 85%)',
+      label: 'EXCELLENT',
+      gradient: { from: 'hsl(0 0% 85%)', to: 'hsl(0 0% 65%)' },
+    };
+  }
+  if (score >= 60) {
+    return {
+      color: 'hsl(38 90% 58%)',
+      label: 'GOOD',
+      gradient: { from: 'hsl(38 90% 58%)', to: 'hsl(38 90% 45%)' },
+    };
+  }
+  if (score >= 40) {
+    return {
+      color: '#ffff00',
+      label: 'FAIR',
+      gradient: { from: '#ffff00', to: '#ff4444' },
+    };
+  }
+  return {
+    color: '#ff4444',
+    label: 'POOR',
+    gradient: { from: '#ff4444', to: '#ff00ff' },
+  };
+}
+```
+
+## Match Score Calculation
+
+The AI match score is computed using multiple weighted factors:
+
+<Steps>
+  <Step title="Skills Overlap (40%)">
+    Compares required skills in the job description against your profile skills.
+
+    ```typescript
+    // Skills matching algorithm
+    const skillsScore = (
+      intersection(jobSkills, profileSkills).length /
+      jobSkills.length
+    ) * 100
+    ```
+
+    **Example:**
+    - Job requires: `["React", "TypeScript", "Node.js", "PostgreSQL"]`
+    - Your profile: `["React", "TypeScript", "Python", "GraphQL"]`
+    - Overlap: 2/4 = **50%**
+    - Weighted: 50% × 0.40 = **20 points**
+  </Step>
+
+  <Step title="Experience Level (25%)">
+    Matches your experience level against the job's requirements.
+
+    ```typescript
+    // Experience level mapping
+    const EXPERIENCE_LEVELS = {
+      'junior': 0,
+      'mid': 1,
+      'senior': 2,
+      'lead': 3,
+      'staff': 4,
+    }
+
+    const experienceScore = (
+      yourLevel === jobLevel ? 100 :
+      Math.abs(yourLevel - jobLevel) === 1 ? 75 :
+      50
+    )
+    ```
+
+    **Example:**
+    - Job level: `senior` (2)
+    - Your level: `senior` (2)
+    - Match: **100%**
+    - Weighted: 100% × 0.25 = **25 points**
+  </Step>
+
+  <Step title="Role Fit (20%)">
+    Semantic similarity between job title and your target roles using embeddings.
+
+    ```typescript
+    // Title similarity using embeddings
+    const titleEmbedding = await embed(job.job_title)
+    const profileEmbedding = await embed(user.target_role)
+    const similarity = cosineSimilarity(titleEmbedding, profileEmbedding)
+    const titleScore = similarity * 100
+    ```
+
+    **Example:**
+    - Job: "Senior Frontend Engineer"
+    - Target: "Senior React Developer"
+    - Similarity: **0.89**
+    - Weighted: 89% × 0.20 = **17.8 points**
+  </Step>
+
+  <Step title="Compensation (10%)">
+    Compares salary range against your expectations.
+
+    ```typescript
+    // Salary matching
+    const salaryScore = (
+      job.salary_range_min >= user.expected_salary_min &&
+      job.salary_range_max <= user.expected_salary_max
+    ) ? 100 : (
+      overlap(jobSalaryRange, userSalaryRange) / userSalaryRange * 100
+    )
+    ```
+
+    **Example:**
+    - Job: $180k - $250k
+    - Your expectation: $150k - $220k
+    - Overlap: $180k - $220k = **$40k / $70k = 57%**
+    - Weighted: 57% × 0.10 = **5.7 points**
+  </Step>
+
+  <Step title="Location & Remote (5%)">
+    Matches job location/remote status with your preferences.
+
+    ```typescript
+    // Location matching
+    const locationScore = (
+      job.is_remote === user.prefer_remote ? 100 :
+      job.location in user.preferred_locations ? 75 :
+      50
+    )
+    ```
+
+    **Example:**
+    - Job: Remote ✓
+    - Your preference: Remote ✓
+    - Match: **100%**
+    - Weighted: 100% × 0.05 = **5 points**
+  </Step>
+</Steps>
+
+### Final Score Formula
+
+```typescript
+const finalScore = Math.round(
+  (skillsScore * 0.40) +
+  (experienceScore * 0.25) +
+  (titleScore * 0.20) +
+  (salaryScore * 0.10) +
+  (locationScore * 0.05)
+)
+
+// Clamp to 0-100 range
+const aiMatchScore = Math.max(0, Math.min(100, finalScore))
+```
+
+<Check>
+  Using the example values above:
+  - Skills: 20
+  - Experience: 25
+  - Title: 17.8
+  - Salary: 5.7
+  - Location: 5
+  - **Total: 73.5% (GOOD match)**
+</Check>
+
+## AI Parsed Data
+
+The scoring algorithm extracts structured data from job descriptions:
+
+```typescript
+// AI parsed data structure (src/lib/types/index.ts:56-69)
+export interface AIParsedData {
+  skills?: string[];                    // ["React", "TypeScript", "Node.js"]
+  requirements?: string[];              // ["5+ years exp", "CS degree preferred"]
+  salary_range?: {
+    min?: number;                        // 180000
+    max?: number;                        // 250000
+    currency?: string;                   // "USD"
+  };
+  remote?: boolean;                     // true
+  experience_level?: 'junior' | 'mid' | 'senior' | 'lead' | 'staff';
+}
+```
+
+### Extraction Process
+
+<Tabs>
+  <Tab title="Skills Extraction">
+    Uses NLP to identify technical skills mentioned in the description:
+
+    ```typescript
+    // Example extraction
+    const description = `
+      We're looking for a Senior Engineer with expertise in
+      React, TypeScript, and GraphQL. Experience with Node.js
+      and PostgreSQL is a plus.
+    `
+
+    const skills = await extractSkills(description)
+    // ["React", "TypeScript", "GraphQL", "Node.js", "PostgreSQL"]
+    ```
+
+    <Note>
+      Skills are normalized to canonical names (e.g., "React.js" → "React").
+    </Note>
+  </Tab>
+
+  <Tab title="Requirements Parsing">
+    Extracts bullet points and key requirements:
+
+    ```typescript
+    const requirements = await extractRequirements(description)
+    // [
+    //   "5+ years of experience in frontend development",
+    //   "Strong understanding of React and TypeScript",
+    //   "Experience with GraphQL APIs",
+    //   "Bachelor's degree in Computer Science or related field"
+    // ]
+    ```
+  </Tab>
+
+  <Tab title="Salary Detection">
+    Parses salary ranges from various formats:
+
+    ```typescript
+    const salaryExamples = [
+      "$180k - $250k",           // → { min: 180000, max: 250000 }
+      "$180,000-$250,000",       // → { min: 180000, max: 250000 }
+      "$180K-250K",              // → { min: 180000, max: 250000 }
+      "Up to $250,000",          // → { min: null, max: 250000 }
+      "Competitive salary",      // → { min: null, max: null }
+    ]
+    ```
+  </Tab>
+
+  <Tab title="Experience Level">
+    Infers seniority from title and description:
+
+    ```typescript
+    const levelPatterns = {
+      junior: /junior|entry.?level|jr\.|0-2 years/i,
+      mid: /mid.?level|3-5 years|intermediate/i,
+      senior: /senior|sr\.|5\+ years|experienced/i,
+      lead: /lead|principal|staff|architect/i,
+      staff: /staff|distinguished|fellow/i,
+    }
+
+    const level = inferExperienceLevel(job.job_title, job.job_description)
+    ```
+  </Tab>
+</Tabs>
+
+## AI Reasoning
+
+Each job includes a human-readable explanation of the score:
+
+```typescript
+// AI reasoning field (src/lib/types/index.ts:32)
+interface Job {
+  ai_reasoning: string | null;
+}
+```
+
+**Example Reasoning:**
+
+<Accordion title="87% Match — Excellent">
+  ```text
+  STRONG MATCH — This role aligns well with your profile:
+
+  ✓ Skills: 9/10 required skills match your expertise (React, TypeScript, 
+    Node.js, PostgreSQL, GraphQL, AWS, Docker, Jest, Git)
+  
+  ✓ Experience: Senior-level requirement matches your 6 years of experience
+  
+  ✓ Compensation: $180k-$250k is within your $150k-$220k range
+  
+  ✓ Location: Remote-first, matching your preference
+  
+  ⚠ Minor gaps: Job mentions Kubernetes (not in your profile)
+  
+  RECOMMENDATION: Apply immediately. Strong candidate.
+  ```
+</Accordion>
+
+<Accordion title="62% Match — Good">
+  ```text
+  DECENT MATCH — Some alignment with your profile:
+
+  ✓ Skills: 6/10 required skills match (React, TypeScript, Node.js, 
+    PostgreSQL, Git, Docker)
+  
+  ⚠ Experience: Role targets mid-level (3-5 yrs), you have 6 years
+  
+  ✓ Compensation: $120k-$180k overlaps with your range
+  
+  ⚠ Location: Hybrid (SF office 2x/week), you prefer full remote
+  
+  ⚠ Gaps: Job requires Vue.js, Terraform, and Kubernetes
+  
+  RECOMMENDATION: Consider if willing to compromise on remote status.
+  ```
+</Accordion>
+
+<Accordion title="43% Match — Fair">
+  ```text
+  WEAK MATCH — Limited alignment with your profile:
+
+  ⚠ Skills: Only 4/12 required skills match (JavaScript, Git, Docker, AWS)
+  
+  ⚠ Experience: Role requires lead/staff level (8+ years), you have 6
+  
+  ⚠ Compensation: $200k-$300k is above your stated range
+  
+  ✓ Location: Remote-friendly
+  
+  ⚠ Major gaps: Requires Python, ML experience, infrastructure skills
+  
+  RECOMMENDATION: Skip unless you're looking to pivot into ML/infrastructure.
+  ```
+</Accordion>
+
+## Score Filtering
+
+Use scores to filter and prioritize jobs:
+
+### In the Tracker
+
+<Tabs>
+  <Tab title="Filter by Score Range">
+    ```tsx
+    // Score filtering (src/components/tracker/board-view.tsx:140-155)
+    function applyFilters(jobs: Job[], filters: TrackerFilters): Job[] {
+      return jobs.filter(job => {
+        if (filters.score === '80plus' && (job.ai_match_score ?? 0) < 80)
+          return false
+        if (filters.score === '60to79' && 
+            ((job.ai_match_score ?? 0) < 60 || (job.ai_match_score ?? 0) >= 80))
+          return false
+        if (filters.score === 'below60' && (job.ai_match_score ?? 0) >= 60)
+          return false
+        return true
+      })
+    }
+    ```
+  </Tab>
+
+  <Tab title="Sort by Score">
+    ```tsx
+    // Sort jobs by score descending
+    const sortedJobs = [...jobs].sort((a, b) => 
+      (b.ai_match_score ?? 0) - (a.ai_match_score ?? 0)
+    )
+    ```
+  </Tab>
+
+  <Tab title="API Filtering">
+    ```typescript
+    // GET /api/jobs with min_score filter
+    const response = await fetch('/api/jobs?min_score=80')
+    const data = await response.json()
+    // Returns only jobs with score >= 80
+    ```
+  </Tab>
+</Tabs>
+
+### Recommended Workflow
+
+<Steps>
+  <Step title="Focus on 80%+ Matches">
+    Apply to all jobs scoring 80% or higher — these are your best opportunities.
+  </Step>
+  <Step title="Review 60-79% Matches">
+    Read full descriptions for good matches. Some may be worth applying to despite gaps.
+  </Step>
+  <Step title="Skip <60% Matches">
+    Unless you have specific reasons (e.g., dream company), avoid low-scoring roles to maximize ROI.
+  </Step>
+</Steps>
+
+## Score Updates
+
+Scores can be recalculated when:
+
+<AccordionGroup>
+  <Accordion title="Profile Changes">
+    If you update your skills, target role, or salary expectations, existing job scores may be recomputed.
+
+    <Warning>
+      Score recalculation is currently manual. Automatic re-scoring on profile updates is planned.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Description Updates">
+    If a scraped job's description changes (e.g., requirements updated), the score will refresh on next sync.
+  </Accordion>
+
+  <Accordion title="Manual Re-scoring">
+    You can trigger re-scoring via the job actions menu:
+
+    ```tsx
+    // Re-score action (planned feature)
+    <DropdownMenuItem onClick={() => rescoreJob(job.id)}>
+      <RefreshCw className="mr-2" />
+      Recalculate Score
+    </DropdownMenuItem>
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Data Storage
+
+### Database Schema
+
+```typescript
+// Job table columns for AI scoring
+interface JobRow {
+  ai_match_score: number | null;       // 0-100
+  ai_parsed_data: AIParsedData | null; // JSONB column
+  ai_reasoning: string | null;         // TEXT column
+}
+```
+
+### Query Examples
+
+<CodeGroup>
+```sql Get High-Scoring Jobs
+SELECT id, company_name, job_title, ai_match_score
+FROM jobs
+WHERE user_id = $1
+  AND ai_match_score >= 80
+  AND deleted_at IS NULL
+ORDER BY ai_match_score DESC;
+```
+
+```sql Average Score by Source
+SELECT 
+  source,
+  COUNT(*) as count,
+  ROUND(AVG(ai_match_score), 1) as avg_score
+FROM jobs
+WHERE user_id = $1 AND ai_match_score IS NOT NULL
+GROUP BY source
+ORDER BY avg_score DESC;
+```
+
+```sql Score Distribution
+SELECT 
+  CASE 
+    WHEN ai_match_score >= 80 THEN 'excellent'
+    WHEN ai_match_score >= 60 THEN 'good'
+    WHEN ai_match_score >= 40 THEN 'fair'
+    ELSE 'poor'
+  END as score_range,
+  COUNT(*) as count
+FROM jobs
+WHERE user_id = $1
+GROUP BY score_range
+ORDER BY MIN(ai_match_score) DESC;
+```
+</CodeGroup>
+
+## API Response
+
+### Job Object with AI Fields
+
+```json
+{
+  "id": "uuid",
+  "company_name": "Stripe",
+  "job_title": "Senior Frontend Engineer",
+  "job_description": "We're looking for...",
+  "ai_match_score": 87,
+  "ai_parsed_data": {
+    "skills": ["React", "TypeScript", "Node.js", "GraphQL"],
+    "requirements": [
+      "5+ years of frontend experience",
+      "Strong CS fundamentals"
+    ],
+    "salary_range": {
+      "min": 180000,
+      "max": 250000,
+      "currency": "USD"
+    },
+    "remote": true,
+    "experience_level": "senior"
+  },
+  "ai_reasoning": "STRONG MATCH — This role aligns well with your profile...",
+  "status": "saved",
+  "created_at": "2026-03-01T10:00:00Z"
+}
+```
+
+## Performance Considerations
+
+<AccordionGroup>
+  <Accordion title="Async Scoring">
+    AI scoring runs asynchronously after job creation to avoid blocking the UI:
+
+    ```typescript
+    // Job creation flow
+    const job = await createJob(data)        // Fast: inserts job with score=null
+    await queueAIScoring(job.id)            // Background task
+    return job                               // Returns immediately
+    ```
+  </Accordion>
+
+  <Accordion title="Caching">
+    Parsed data and scores are cached in the database to avoid re-computation on every page load.
+  </Accordion>
+
+  <Accordion title="Batch Processing">
+    When scraping multiple jobs, scores are computed in batches to optimize API usage.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tracker" icon="grip-vertical" href="/features/tracker">
+    Use scores to filter and prioritize applications
+  </Card>
+  <Card title="Intel" icon="brain" href="/features/intel">
+    Get recommendations to improve your avg match score
+  </Card>
+  <Card title="Profile Setup" icon="user" href="/quickstart">
+    Optimize your profile for better match scores
+  </Card>
+  <Card title="Jobs API" icon="code" href="/api/jobs">
+    Filter jobs by score via API
+  </Card>
+</CardGroup>

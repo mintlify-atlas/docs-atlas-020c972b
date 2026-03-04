@@ -1,0 +1,390 @@
+---
+title: 'Tech Stack'
+description: 'Technology stack and dependencies used in Pipeline'
+---
+
+## Overview
+
+Pipeline is built with modern web technologies, leveraging Next.js 15, TypeScript, Supabase, and a curated set of libraries for optimal performance and developer experience.
+
+## Core Technologies
+
+### Frontend Framework
+
+<CardGroup cols={2}>
+  <Card title="Next.js 15.1.6" icon="react">
+    React framework with App Router, Server Components, and Server Actions
+  </Card>
+  <Card title="React 19.0.0" icon="react">
+    Latest React with improved server components and concurrent features
+  </Card>
+</CardGroup>
+
+**Key Features:**
+- App Router for file-based routing
+- React Server Components (RSC) for optimized rendering
+- Server Actions for type-safe data mutations
+- Middleware for authentication and route protection
+- Built-in image optimization
+
+### Language
+
+<Card title="TypeScript 5.8.3" icon="code">
+  Strict type safety across the entire codebase
+</Card>
+
+**Configuration Highlights:**
+- `strict: true` mode enabled
+- Path aliases configured (`@/src/*`)
+- Database types auto-generated from Supabase schema
+
+---
+
+## Backend & Database
+
+### Supabase Stack
+
+<CardGroup cols={2}>
+  <Card title="@supabase/supabase-js 2.98.0" icon="database">
+    Official Supabase JavaScript client
+  </Card>
+  <Card title="@supabase/ssr 0.8.0" icon="server">
+    SSR utilities for Next.js App Router
+  </Card>
+</CardGroup>
+
+**Features Used:**
+- PostgreSQL 15+ database
+- Row-Level Security (RLS) for data isolation
+- Real-time subscriptions
+- Built-in authentication
+- Database triggers and functions
+- Full-text search with weighted vectors
+
+### Database Extensions
+
+```sql
+-- Enabled extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";  -- UUID generation
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";   -- Cryptographic functions
+```
+
+---
+
+## State Management
+
+### Client State
+
+<Card title="Zustand 5.0.11" icon="box">
+  Lightweight state management with minimal boilerplate
+</Card>
+
+**Usage Example:**
+```typescript
+// src/lib/stores/ui-store.ts
+import { create } from 'zustand';
+
+export const useUIStore = create<UIState>((set) => ({
+  commandPaletteOpen: false,
+  setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+  // ... more state
+}));
+```
+
+**Stores:**
+- `ui-store.ts` - UI state (modals, drawers, command palette)
+
+### Server State
+
+<Card title="TanStack Query 5.90.21" icon="arrows-rotate">
+  Data fetching, caching, and synchronization
+</Card>
+
+**Features:**
+- Automatic background refetching
+- Optimistic updates
+- Request deduplication
+- Cache invalidation strategies
+
+---
+
+## UI Components
+
+### Design System
+
+<CardGroup cols={2}>
+  <Card title="Tailwind CSS 4.2.1" icon="palette">
+    Utility-first CSS framework with custom design tokens
+  </Card>
+  <Card title="Radix UI" icon="layer-group">
+    Unstyled, accessible component primitives
+  </Card>
+</CardGroup>
+
+### Radix UI Components
+
+All components are accessible, keyboard-navigable, and unstyled for full customization:
+
+- **Dialogs**: `@radix-ui/react-dialog@1.1.15`
+- **Dropdown Menus**: `@radix-ui/react-dropdown-menu@2.1.16`
+- **Forms**: `@radix-ui/react-label@2.1.8`, `@radix-ui/react-checkbox@1.3.3`
+- **Select**: `@radix-ui/react-select@2.2.6`
+- **Tabs**: `@radix-ui/react-tabs@1.1.13`
+- **Toast**: `@radix-ui/react-toast@1.2.15`
+- **Progress**: `@radix-ui/react-progress@1.1.8`
+- **Avatar**: `@radix-ui/react-avatar@1.1.11`
+- **Slider**: `@radix-ui/react-slider@1.3.6`
+- **Switch**: `@radix-ui/react-switch@1.2.6`
+
+### Utility Libraries
+
+<CardGroup cols={2}>
+  <Card title="class-variance-authority" icon="wand-magic-sparkles">
+    Type-safe component variants
+  </Card>
+  <Card title="clsx + tailwind-merge" icon="layer-group">
+    Smart class name merging
+  </Card>
+</CardGroup>
+
+---
+
+## Animations & Interactions
+
+<CardGroup cols={2}>
+  <Card title="Framer Motion 12.34.3" icon="circle-play">
+    Production-ready animations for React
+  </Card>
+  <Card title="Lucide React 0.546.0" icon="icons">
+    Beautiful, consistent icon library
+  </Card>
+</CardGroup>
+
+**Framer Motion Usage:**
+- Page transitions
+- Modal animations
+- List item animations (drag & drop)
+- Micro-interactions
+
+---
+
+## Data Visualization
+
+<Card title="Recharts 3.7.0" icon="chart-line">
+  Composable charting library built with React components
+</Card>
+
+**Charts Used:**
+- Line charts for application trends
+- Bar charts for status distribution
+- Pie charts for source breakdown
+
+---
+
+## Forms & Validation
+
+<CardGroup cols={2}>
+  <Card title="Zod 4.3.6" icon="shield-check">
+    TypeScript-first schema validation
+  </Card>
+  <Card title="React Hook Form" icon="square-check">
+    Performant form handling (via Radix primitives)
+  </Card>
+</CardGroup>
+
+**Validation Example:**
+```typescript
+import { z } from 'zod';
+
+export const SignupSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  redirect_to: z.string().url().optional(),
+});
+```
+
+---
+
+## Tables & Data Display
+
+<Card title="TanStack Table 8.21.3" icon="table">
+  Headless UI for building powerful tables and datagrids
+</Card>
+
+**Features:**
+- Column sorting
+- Filtering
+- Pagination
+- Row selection
+- Column visibility toggles
+
+---
+
+## Command Palette
+
+<Card title="cmdk 1.1.1" icon="terminal">
+  Fast, composable command menu for React
+</Card>
+
+**Keyboard Shortcuts:**
+- `Cmd+K` / `Ctrl+K` - Open command palette
+- Navigate jobs, switch views, quick actions
+
+---
+
+## Development Tools
+
+### Testing
+
+<CardGroup cols={2}>
+  <Card title="Vitest 2.0.0" icon="flask">
+    Fast unit testing framework
+  </Card>
+  <Card title="@vitest/coverage-v8" icon="chart-simple">
+    Code coverage reporting
+  </Card>
+</CardGroup>
+
+### Build Tools
+
+- **PostCSS with Tailwind**: `@tailwindcss/postcss@4.2.1`
+- **Autoprefixer**: `autoprefixer@10.4.27`
+- **TSX**: `tsx@4.21.0` for running TypeScript files
+
+### Database Development
+
+- **PostgreSQL Client**: `pg@8.13.0` with TypeScript types
+- **Dotenv**: `dotenv@16.4.0` for environment variable management
+
+---
+
+## Package Management
+
+<Card title="npm" icon="box">
+  Node Package Manager (v8+)
+</Card>
+
+**Scripts:**
+```json
+{
+  "dev": "next dev --port 3000",
+  "build": "next build",
+  "start": "next start",
+  "lint": "next lint",
+  "typecheck": "tsc --noEmit",
+  "test": "vitest",
+  "test:coverage": "vitest --coverage"
+}
+```
+
+---
+
+## Environment Requirements
+
+### Node.js
+
+- **Required**: Node.js 18.x or higher
+- **Recommended**: Node.js 20.x LTS
+
+### Browser Support
+
+- Modern evergreen browsers (Chrome, Firefox, Safari, Edge)
+- ES2022+ features required
+- JavaScript enabled
+
+---
+
+## Dependencies Overview
+
+<Accordion title="View Full Dependency List">
+
+### Production Dependencies
+
+```json
+{
+  "@radix-ui/react-alert-dialog": "^1.1.15",
+  "@radix-ui/react-avatar": "^1.1.11",
+  "@radix-ui/react-checkbox": "^1.3.3",
+  "@radix-ui/react-dialog": "^1.1.15",
+  "@radix-ui/react-dropdown-menu": "^2.1.16",
+  "@radix-ui/react-label": "^2.1.8",
+  "@radix-ui/react-progress": "^1.1.8",
+  "@radix-ui/react-select": "^2.2.6",
+  "@radix-ui/react-separator": "^1.1.8",
+  "@radix-ui/react-slider": "^1.3.6",
+  "@radix-ui/react-slot": "^1.2.4",
+  "@radix-ui/react-switch": "^1.2.6",
+  "@radix-ui/react-tabs": "^1.1.13",
+  "@radix-ui/react-toast": "^1.2.15",
+  "@supabase/ssr": "^0.8.0",
+  "@supabase/supabase-js": "^2.98.0",
+  "@tanstack/react-query": "^5.90.21",
+  "@tanstack/react-table": "^8.21.3",
+  "class-variance-authority": "^0.7.1",
+  "clsx": "^2.1.1",
+  "cmdk": "^1.1.1",
+  "framer-motion": "^12.34.3",
+  "lucide-react": "^0.546.0",
+  "next": "^15.1.6",
+  "react": "^19.0.0",
+  "react-dom": "^19.0.0",
+  "recharts": "^3.7.0",
+  "server-only": "^0.0.1",
+  "tailwind-merge": "^3.5.0",
+  "zod": "^4.3.6",
+  "zustand": "^5.0.11"
+}
+```
+
+### Development Dependencies
+
+```json
+{
+  "@tailwindcss/postcss": "^4.2.1",
+  "@types/node": "22.19.13",
+  "@types/pg": "^8.11.0",
+  "@types/react": "19.2.14",
+  "@vitest/coverage-v8": "^2.0.0",
+  "autoprefixer": "^10.4.27",
+  "dotenv": "^16.4.0",
+  "pg": "^8.13.0",
+  "tailwindcss": "^4.2.1",
+  "tsx": "^4.21.0",
+  "typescript": "^5.8.3",
+  "vitest": "^2.0.0"
+}
+```
+
+</Accordion>
+
+---
+
+## Architecture Benefits
+
+<CardGroup cols={2}>
+  <Card title="Type Safety" icon="shield-check">
+    End-to-end TypeScript with database types auto-generated from schema
+  </Card>
+  <Card title="Performance" icon="gauge-high">
+    Server Components, edge runtime, and optimized bundling
+  </Card>
+  <Card title="Developer Experience" icon="code">
+    Hot reload, TypeScript IntelliSense, and comprehensive error messages
+  </Card>
+  <Card title="Scalability" icon="arrow-up-right-dots">
+    Serverless architecture, PostgreSQL with connection pooling
+  </Card>
+</CardGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Schema" href="/architecture/database-schema" icon="database">
+    Explore the PostgreSQL database structure
+  </Card>
+  <Card title="Authentication" href="/architecture/authentication" icon="lock">
+    Learn about auth implementation
+  </Card>
+</CardGroup>

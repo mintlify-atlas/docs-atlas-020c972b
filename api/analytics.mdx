@@ -1,0 +1,438 @@
+---
+title: "Analytics API"
+description: "Dashboard metrics and timeline data"
+---
+
+Get aggregated analytics and time-series data for your job search progress. All endpoints require authentication.
+
+## Get Dashboard Metrics
+
+<CodeGroup>
+```bash GET /api/analytics/dashboard
+curl -X GET "https://api.pipeline.local/api/analytics/dashboard" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</CodeGroup>
+
+Returns comprehensive dashboard analytics computed from the user's jobs and events.
+
+### Authentication
+
+Required. User can only access their own analytics.
+
+### Response
+
+<ResponseField name="totalApplications" type="number" required>
+  Total number of jobs tracked.
+</ResponseField>
+
+<ResponseField name="applicationsChange" type="number" required>
+  Week-over-week change in applications (percentage).
+  
+  **Example:** `15.3` means 15.3% increase
+</ResponseField>
+
+<ResponseField name="activeCompanies" type="number" required>
+  Count of unique companies with non-rejected status.
+</ResponseField>
+
+<ResponseField name="companiesChange" type="number" required>
+  Week-over-week change in active companies (percentage).
+</ResponseField>
+
+<ResponseField name="interviewRate" type="number" required>
+  Percentage of applications that reached interview or offer stage.
+  
+  **Range:** 0-100
+</ResponseField>
+
+<ResponseField name="interviewRateChange" type="number" required>
+  Week-over-week change in interview rate (percentage points).
+</ResponseField>
+
+<ResponseField name="avgMatchScore" type="number" required>
+  Average AI match score across all scored jobs.
+  
+  **Range:** 0-100
+</ResponseField>
+
+<ResponseField name="matchScoreChange" type="number" required>
+  Week-over-week change in average match score (points).
+</ResponseField>
+
+<ResponseField name="responseRate" type="number" required>
+  Percentage of applications that received a response (interview, offer, or rejection).
+  
+  **Range:** 0-100
+</ResponseField>
+
+<ResponseField name="avgResponseTime" type="number" required>
+  Average days between application and first response.
+  
+  Calculated from `applied_at` to `interview_at` for jobs with both timestamps.
+</ResponseField>
+
+<ResponseField name="byStatus" type="object" required>
+  Job count breakdown by status.
+  
+  <Expandable title="Properties">
+    <ResponseField name="saved" type="number" required>
+      Count of saved jobs.
+    </ResponseField>
+    
+    <ResponseField name="applied" type="number" required>
+      Count of applied jobs.
+    </ResponseField>
+    
+    <ResponseField name="interview" type="number" required>
+      Count of jobs in interview stage.
+    </ResponseField>
+    
+    <ResponseField name="offer" type="number" required>
+      Count of offers received.
+    </ResponseField>
+    
+    <ResponseField name="rejected" type="number" required>
+      Count of rejected applications.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="bySource" type="array" required>
+  Job count breakdown by source, sorted descending by count.
+  
+  <Expandable title="Source Object">
+    <ResponseField name="source" type="string" required>
+      Source name: `brightermonday`, `fuzu`, `linkedin`, or `manual`.
+    </ResponseField>
+    
+    <ResponseField name="count" type="number" required>
+      Number of jobs from this source.
+    </ResponseField>
+    
+    <ResponseField name="percentage" type="number" required>
+      Percentage of total jobs from this source.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="applicationsOverTime" type="array" required>
+  Daily application counts for the last 30 days.
+  
+  <Expandable title="Data Point">
+    <ResponseField name="date" type="string" required>
+      Date in YYYY-MM-DD format.
+    </ResponseField>
+    
+    <ResponseField name="value" type="number" required>
+      Total jobs created on this date.
+    </ResponseField>
+    
+    <ResponseField name="saved" type="number" required>
+      Count by status.
+    </ResponseField>
+    
+    <ResponseField name="applied" type="number" required>
+      Count by status.
+    </ResponseField>
+    
+    <ResponseField name="interview" type="number" required>
+      Count by status.
+    </ResponseField>
+    
+    <ResponseField name="offer" type="number" required>
+      Count by status.
+    </ResponseField>
+    
+    <ResponseField name="rejected" type="number" required>
+      Count by status.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="statusOverTime" type="array" required>
+  Status breakdown over time for stacked charts.
+  
+  <Expandable title="Status Series">
+    <ResponseField name="status" type="string" required>
+      Status name.
+    </ResponseField>
+    
+    <ResponseField name="color" type="string" required>
+      HSL color string for charting.
+    </ResponseField>
+    
+    <ResponseField name="data" type="array" required>
+      Array of `{ date, value }` objects.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="activities" type="array" required>
+  Last 10 significant events (job created, status changed, AI scored).
+  
+  <Expandable title="Activity Object">
+    <ResponseField name="id" type="string" required>
+      Event UUID.
+    </ResponseField>
+    
+    <ResponseField name="type" type="string" required>
+      Activity type: `application`, `interview`, `status_change`, `viewed`, or `match`.
+    </ResponseField>
+    
+    <ResponseField name="title" type="string" required>
+      Human-readable title.
+    </ResponseField>
+    
+    <ResponseField name="description" type="string" required>
+      Description (e.g., "Acme Corp — Senior Engineer → APPLIED").
+    </ResponseField>
+    
+    <ResponseField name="timestamp" type="string" required>
+      ISO 8601 timestamp.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "totalApplications": 42,
+  "applicationsChange": 15.3,
+  "activeCompanies": 28,
+  "companiesChange": 8.5,
+  "interviewRate": 32.5,
+  "interviewRateChange": 2.1,
+  "avgMatchScore": 78.3,
+  "matchScoreChange": 1.2,
+  "responseRate": 45.8,
+  "avgResponseTime": 7.3,
+  "byStatus": {
+    "saved": 12,
+    "applied": 18,
+    "interview": 8,
+    "offer": 2,
+    "rejected": 2
+  },
+  "bySource": [
+    { "source": "linkedin", "count": 25, "percentage": 59.5 },
+    { "source": "manual", "count": 10, "percentage": 23.8 },
+    { "source": "brightermonday", "count": 5, "percentage": 11.9 },
+    { "source": "fuzu", "count": 2, "percentage": 4.8 }
+  ],
+  "applicationsOverTime": [
+    {
+      "date": "2026-02-28",
+      "value": 3,
+      "saved": 1,
+      "applied": 2,
+      "interview": 0,
+      "offer": 0,
+      "rejected": 0
+    },
+    {
+      "date": "2026-03-01",
+      "value": 5,
+      "saved": 2,
+      "applied": 3,
+      "interview": 0,
+      "offer": 0,
+      "rejected": 0
+    }
+  ],
+  "statusOverTime": [
+    {
+      "status": "saved",
+      "color": "hsl(0 0% 65%)",
+      "data": [
+        { "date": "2026-02-28", "value": 1 },
+        { "date": "2026-03-01", "value": 2 }
+      ]
+    },
+    {
+      "status": "applied",
+      "color": "hsl(210 70% 60%)",
+      "data": [
+        { "date": "2026-02-28", "value": 2 },
+        { "date": "2026-03-01", "value": 3 }
+      ]
+    }
+  ],
+  "activities": [
+    {
+      "id": "evt_001",
+      "type": "interview",
+      "title": "Interview Stage",
+      "description": "Acme Corp — Senior Backend Engineer → INTERVIEW",
+      "timestamp": "2026-03-02T09:00:00Z"
+    },
+    {
+      "id": "evt_002",
+      "type": "application",
+      "title": "Application Sent",
+      "description": "TechCo — Full Stack Developer → APPLIED",
+      "timestamp": "2026-03-01T14:30:00Z"
+    }
+  ]
+}
+```
+
+### Performance Notes
+
+- **Caching:** Response includes `Cache-Control: private, max-age=60, stale-while-revalidate=120` header
+- **Safety Cap:** Fetches max 1,000 jobs to prevent memory exhaustion
+- **Optimization:** Long-term plan is to move aggregation to SQL `GROUP BY` queries
+
+### Status: ✅ Live
+
+This endpoint is fully implemented. See `app/api/analytics/dashboard/route.ts:33`.
+
+---
+
+## Get Timeline Data
+
+<CodeGroup>
+```bash GET /api/analytics/timeline
+curl -X GET "https://api.pipeline.local/api/analytics/timeline?period=30d" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+</CodeGroup>
+
+Returns time-series data for applications over time, broken down by status.
+
+### Authentication
+
+Required. User can only access their own timeline.
+
+### Query Parameters
+
+<ParamField query="period" type="string" default="30d">
+  Time period to fetch.
+  
+  **Values:**
+  - `7d` — Last 7 days
+  - `30d` — Last 30 days
+  - `90d` — Last 90 days
+  - `all` — All time (from 2020-01-01)
+</ParamField>
+
+### Response
+
+<ResponseField name="timeline" type="array" required>
+  Array of daily data points, sorted by date ascending.
+  
+  <Expandable title="Data Point">
+    <ResponseField name="date" type="string" required>
+      Date in YYYY-MM-DD format.
+    </ResponseField>
+    
+    <ResponseField name="value" type="number" required>
+      Total jobs created on this date.
+    </ResponseField>
+    
+    <ResponseField name="saved" type="number" required>
+      Count of jobs with status `saved`.
+    </ResponseField>
+    
+    <ResponseField name="applied" type="number" required>
+      Count of jobs with status `applied`.
+    </ResponseField>
+    
+    <ResponseField name="interview" type="number" required>
+      Count of jobs with status `interview`.
+    </ResponseField>
+    
+    <ResponseField name="offer" type="number" required>
+      Count of jobs with status `offer`.
+    </ResponseField>
+    
+    <ResponseField name="rejected" type="number" required>
+      Count of jobs with status `rejected`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="period" type="string" required>
+  Requested period (echoed from query param).
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "timeline": [
+    {
+      "date": "2026-02-28",
+      "value": 3,
+      "saved": 1,
+      "applied": 2,
+      "interview": 0,
+      "offer": 0,
+      "rejected": 0
+    },
+    {
+      "date": "2026-03-01",
+      "value": 5,
+      "saved": 2,
+      "applied": 2,
+      "interview": 1,
+      "offer": 0,
+      "rejected": 0
+    },
+    {
+      "date": "2026-03-02",
+      "value": 2,
+      "saved": 0,
+      "applied": 1,
+      "interview": 1,
+      "offer": 0,
+      "rejected": 0
+    }
+  ],
+  "period": "30d"
+}
+```
+
+### Performance Notes
+
+- **Safety Cap:** Limits to 5,000 rows (prevents unbounded fetches for `period=all`)
+- **Grouping:** Groups by date on the client side; consider moving to SQL `GROUP BY` for large datasets
+
+### Status: ✅ Live
+
+This endpoint is fully implemented. See `app/api/analytics/timeline/route.ts:11`.
+
+---
+
+## Errors
+
+All analytics endpoints return standard error responses:
+
+<ResponseField name="error" type="object">
+  <Expandable title="Error Object">
+    <ResponseField name="code" type="string" required>
+      Error code: `UNAUTHORIZED`, `INTERNAL_ERROR`
+    </ResponseField>
+    
+    <ResponseField name="message" type="string" required>
+      Human-readable error message.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Common Errors
+
+- **401 Unauthorized** — Missing or invalid auth token
+- **500 Internal Error** — Database error
+
+### Example Error Response
+
+```json
+{
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "Failed to fetch dashboard data"
+  }
+}
+```

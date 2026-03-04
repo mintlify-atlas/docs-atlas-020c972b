@@ -1,0 +1,595 @@
+---
+title: Integrations
+description: Connect PIPELINE with Discord, Gmail, and Google Calendar for automated tracking and notifications
+---
+
+PIPELINE integrates with the tools you already use to automate job search tracking and notifications. Set up once, then let the system work for you.
+
+<Note>
+  All integrations are **optional** and can be configured independently. Enable only what you need.
+</Note>
+
+---
+
+## Integration Status
+
+Current availability of each integration:
+
+| Integration | Status | Purpose |
+|-------------|--------|----------|
+| **Discord Notifications** | 🟡 Planned | Get notified when job status changes |
+| **Gmail Scanner** | 🟡 Planned | Auto-detect interview invites and rejections |
+| **Google Calendar** | 🟡 Planned | Auto-create interview events |
+| **Data Export** | ✅ Available | Download your data as JSON or CSV |
+
+<Info>
+  Discord, Gmail, and Calendar integrations are under active development. They will be available in a future release. This guide documents the planned functionality.
+</Info>
+
+---
+
+## Discord Integration
+
+### Overview
+
+Get real-time notifications in Discord when important events happen in your job search pipeline.
+
+**What you'll get:**
+- **Status change alerts** — When jobs move to Interview or Offer
+- **Scraper updates** — When new jobs are imported automatically
+- **Daily digests** — Summary of your pipeline stats every morning
+- **Slash commands** — Query your stats directly from Discord
+
+### Setup (When Available)
+
+<Steps>
+  <Step title="Create Discord server">
+    If you don't already have a personal Discord server:
+    
+    1. Open Discord
+    2. Click "+" to create a server
+    3. Choose "Create My Own" → "For me and my friends"
+    4. Name it "Job Search" or similar
+  </Step>
+  
+  <Step title="Create channels">
+    Add two text channels:
+    
+    - `#pipeline-alerts` — For urgent notifications (interviews, offers)
+    - `#pipeline-digest` — For daily summaries
+  </Step>
+  
+  <Step title="Connect to PIPELINE">
+    In PIPELINE Settings → Integrations:
+    
+    1. Click "Connect Discord"
+    2. Authorize the PIPELINE bot
+    3. Select your server
+    4. Choose which channels to use
+  </Step>
+  
+  <Step title="Test the connection">
+    Click "Send Test Message" to verify setup.
+  </Step>
+</Steps>
+
+### Notification Types
+
+<AccordionGroup>
+  <Accordion title="Status Change Alerts" icon="bell">
+    **Triggered when:**
+    - Job moves to Interview status
+    - Job moves to Offer status
+    - Job moves to Rejected status (optional, can disable)
+    
+    **Example notification:**
+    ```
+    📅 Status Update
+    Google — Senior Frontend Engineer
+    From: APPLIED → To: INTERVIEW
+    ```
+  </Accordion>
+  
+  <Accordion title="Scraper Updates" icon="robot">
+    **Triggered when:**
+    - Scraper finds and imports new jobs
+    - Scraper run completes successfully
+    - Scraper encounters errors
+    
+    **Example notification:**
+    ```
+    ✅ Scraper: LinkedIn
+    Found: 15 jobs
+    New: 8 jobs
+    Time: 12.3s
+    ```
+  </Accordion>
+  
+  <Accordion title="Daily Digest" icon="calendar">
+    **Sent every morning at 6 AM**
+    
+    Includes:
+    - Total applications
+    - Active interviews
+    - Pending offers
+    - Applications awaiting response
+    
+    **Example notification:**
+    ```
+    📊 Daily Digest
+    
+    Total Applications: 47
+    Applied: 23
+    Interviews: 4
+    Offers: 1
+    
+    Interview Rate: 12.5%
+    Avg Match Score: 76/100
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Discord Bot Commands
+
+Once the bot is installed, use these slash commands:
+
+<ResponseField name="/pipeline status" type="command">
+  Show your current pipeline statistics
+  
+  **Returns:**
+  - Total jobs by status
+  - Interview rate
+  - Average match score
+</ResponseField>
+
+<ResponseField name="/pipeline jobs" type="command">
+  List recent jobs with optional status filter
+  
+  **Options:**
+  - `status` — Filter by status (All, Applied, Interview, Offer)
+  
+  **Returns:**
+  - Last 5 jobs matching filter
+  - Company, title, and AI match score
+</ResponseField>
+
+<ResponseField name="/pipeline scrape" type="command">
+  Trigger a manual scraper run
+  
+  **Options:**
+  - `source` — Which job board to scrape (BrighterMonday, Fuzu, Both)
+  
+  **Note:** Requires scraper service to be deployed
+</ResponseField>
+
+<Tip>
+  Pin important notifications in Discord to create a quick reference of interviews and offers.
+</Tip>
+
+---
+
+## Gmail Scanner Integration
+
+### Overview
+
+Automatically update job statuses based on emails you receive from companies.
+
+**What it does:**
+- Scans your inbox once per day (6 AM)
+- Identifies interview invitations → moves job to Interview status
+- Identifies rejection emails → moves job to Rejected status
+- Logs all actions to job timeline
+
+**What it doesn't do:**
+- Read or store email content (only metadata)
+- Scan emails older than 24 hours
+- Modify or delete your emails
+- Share data with third parties
+
+### Setup (When Available)
+
+<Steps>
+  <Step title="Connect Google account">
+    In PIPELINE Settings → Integrations:
+    
+    1. Click "Connect Gmail"
+    2. Sign in with your Google account
+    3. Grant read-only access to Gmail
+  </Step>
+  
+  <Step title="Choose scan schedule">
+    Select when to scan:
+    
+    - **Daily at 6 AM** (recommended)
+    - **Twice daily** (6 AM and 6 PM)
+    - **Manual only** (on-demand via button)
+  </Step>
+  
+  <Step title="Test the scanner">
+    Click "Scan Now" to run a test scan and see results.
+  </Step>
+</Steps>
+
+### How It Works
+
+<Tabs>
+  <Tab title="Interview Detection">
+    The scanner looks for keywords that indicate an interview invitation:
+    
+    **Keywords:**
+    - "interview"
+    - "schedule a call"
+    - "next steps"
+    - "technical assessment"
+    - "coding challenge"
+    
+    **Matching logic:**
+    1. Find emails with these keywords
+    2. Extract company name from sender domain
+    3. Match to jobs in "Applied" status from that company
+    4. Update status to "Interview"
+    5. Add timeline event with email subject
+  </Tab>
+  
+  <Tab title="Rejection Detection">
+    The scanner identifies rejection emails:
+    
+    **Keywords:**
+    - "unfortunately"
+    - "we regret"
+    - "not moving forward"
+    - "other candidates"
+    - "not a fit"
+    
+    **Matching logic:**
+    1. Find emails with these keywords
+    2. Extract company name from sender
+    3. Match to jobs in "Applied" or "Interview" status
+    4. Update status to "Rejected"
+    5. Log rejection date and reason
+  </Tab>
+  
+  <Tab title="Company Matching">
+    How the scanner matches emails to jobs:
+    
+    **Method 1 — Domain matching:**
+    ```
+    Email from: recruiter@google.com
+    → Extract: google
+    → Match job with company_name LIKE '%google%'
+    ```
+    
+    **Method 2 — Sender name:**
+    ```
+    Email from: "Microsoft Recruiting" <recruiting@example.com>
+    → Extract: Microsoft
+    → Match job with company_name LIKE '%microsoft%'
+    ```
+    
+    <Note>
+      Only jobs in Applied or Interview status are matched. Saved jobs are ignored.
+    </Note>
+  </Tab>
+</Tabs>
+
+### Privacy & Security
+
+<Warning>
+  Gmail scanner uses read-only access and follows these privacy principles:
+</Warning>
+
+- **Minimal access:** Only scans emails from last 24 hours
+- **No storage:** Email content is not saved to PIPELINE database
+- **Metadata only:** Only subject line and sender are used for matching
+- **Revocable:** Disconnect anytime in Settings → Integrations
+- **Open source:** Scanner code is public for audit
+
+**Data retention:**
+- Scanner logs are kept for 30 days for debugging
+- Logs contain only: timestamp, sender domain, classification result
+- No email bodies or attachments are ever logged
+
+### Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Scanner isn't detecting emails">
+    **Possible causes:**
+    
+    1. **Company name mismatch** — Scanner extracts company from email domain. Ensure your job's company name matches the sender's company.
+       - Example: Email from `recruiting@meta.com` won't match job at "Facebook"
+    
+    2. **Email in wrong folder** — Scanner only checks Inbox. If you filter recruiting emails to a folder, they won't be scanned.
+    
+    3. **Keywords not present** — Rejection/interview emails must contain specific keywords. Check the keywords list above.
+  </Accordion>
+  
+  <Accordion title="Wrong jobs are being updated">
+    If the scanner updates the wrong job:
+    
+    1. Check if you have multiple jobs at similar companies
+    2. Ensure company names are specific ("Google Cloud" vs "Google")
+    3. Manually revert the status if needed
+    4. Report false positives via Settings → Integrations → Report Issue
+  </Accordion>
+  
+  <Accordion title="How to disable scanning">
+    To pause or disable:
+    
+    1. Go to Settings → Integrations
+    2. Toggle "Gmail Scanner" to OFF
+    3. Or click "Disconnect Gmail" to fully revoke access
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Google Calendar Integration
+
+### Overview
+
+Automatically create calendar events when you schedule interviews.
+
+**What it does:**
+- Creates calendar event when job moves to Interview status
+- Extracts interview date/time if provided
+- Adds reminder 1 hour and 15 minutes before
+- Includes job details in event description
+
+### Setup (When Available)
+
+<Steps>
+  <Step title="Connect Google Calendar">
+    In PIPELINE Settings → Integrations:
+    
+    1. Click "Connect Calendar"
+    2. Sign in with Google (same as Gmail)
+    3. Grant calendar access
+  </Step>
+  
+  <Step title="Choose calendar">
+    Select which calendar to use:
+    
+    - Primary calendar (default)
+    - Create new "Job Search" calendar
+  </Step>
+  
+  <Step title="Set default duration">
+    Choose default interview length:
+    
+    - 30 minutes
+    - 60 minutes (recommended)
+    - 90 minutes
+  </Step>
+</Steps>
+
+### How It Works
+
+<Tabs>
+  <Tab title="Manual Interview Scheduling">
+    When you move a job to Interview status:
+    
+    1. PIPELINE prompts for interview date/time
+    2. You enter the details
+    3. Calendar event is created automatically
+    4. Event includes:
+       - Title: "Interview: [Job Title] @ [Company]"
+       - Time: As entered
+       - Description: Job details and requirements
+       - Reminders: 60min and 15min before
+  </Tab>
+  
+  <Tab title="Gmail Auto-Detection">
+    If Gmail scanner detects an interview email:
+    
+    1. Attempts to extract date/time from email
+    2. If found, creates calendar event automatically
+    3. If not found, prompts you to enter manually
+    
+    **Supported formats:**
+    - "Tuesday, March 5th at 2:00 PM EST"
+    - "03/05/2026 14:00"
+    - "Tomorrow at 2pm"
+  </Tab>
+</Tabs>
+
+### Event Details
+
+Calendar events include:
+
+```
+Title: Interview: Senior Frontend Engineer @ Google
+
+Description:
+Role: Senior Frontend Engineer
+Company: Google
+Location: Remote
+Salary: $150,000 - $200,000
+
+Requirements:
+- 5+ years React experience
+- TypeScript proficiency
+- System design knowledge
+
+Notes:
+[Your private notes from PIPELINE]
+
+Tracked in PIPELINE: https://app.pipeline.dev/tracker
+```
+
+**Reminders:**
+- 60 minutes before — Final prep
+- 15 minutes before — Join the call
+
+<Tip>
+  Add the job URL to your calendar event so you can review the posting right before the interview.
+</Tip>
+
+---
+
+## Data Export
+
+### Overview
+
+**Status:** ✅ **Available Now**
+
+Export all your PIPELINE data for analysis, backup, or migration.
+
+### How to Export
+
+<Steps>
+  <Step title="Go to Settings">
+    Navigate to Settings → Data & Privacy
+  </Step>
+  
+  <Step title="Choose format">
+    Select export format:
+    
+    - **JSON** — Complete data with all fields
+    - **CSV** — Spreadsheet-compatible format
+  </Step>
+  
+  <Step title="Download file">
+    Click "Export Data" to download immediately
+  </Step>
+</Steps>
+
+### What's Included
+
+<Tabs>
+  <Tab title="JSON Export">
+    Complete data export with all fields:
+    
+    ```json
+    {
+      "exported_at": "2026-03-04T12:00:00Z",
+      "jobs": [
+        {
+          "id": "uuid",
+          "company_name": "Google",
+          "job_title": "Senior Frontend Engineer",
+          "status": "interview",
+          "source": "linkedin",
+          "job_url": "https://...",
+          "location": "Remote",
+          "salary_range_min": 150000,
+          "salary_range_max": 200000,
+          "ai_match_score": 85,
+          "notes": "Strong team, great culture",
+          "created_at": "2026-02-15T10:00:00Z",
+          "updated_at": "2026-02-28T14:30:00Z"
+        }
+      ],
+      "events": [
+        {
+          "id": "uuid",
+          "job_id": "uuid",
+          "event_type": "status_change",
+          "event_data": {
+            "old_status": "applied",
+            "new_status": "interview"
+          },
+          "created_at": "2026-02-28T14:30:00Z"
+        }
+      ]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="CSV Export">
+    Spreadsheet-friendly format:
+    
+    **Columns:**
+    - Company Name
+    - Job Title
+    - Status
+    - Source
+    - Location
+    - Salary Min
+    - Salary Max
+    - AI Match Score
+    - Created Date
+    - Updated Date
+    - Notes
+    
+    **Use cases:**
+    - Analyze in Excel or Google Sheets
+    - Create custom charts
+    - Share with career coaches
+    - Import to other tools
+  </Tab>
+</Tabs>
+
+### Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Backup your data" icon="cloud-arrow-down">
+    Export monthly as backup. Store in cloud storage for safekeeping.
+  </Card>
+  
+  <Card title="Advanced analytics" icon="chart-mixed">
+    Import to Excel/Sheets for pivot tables and custom analysis.
+  </Card>
+  
+  <Card title="Portfolio projects" icon="folder-open">
+    Use your job search data to build data viz projects for interviews.
+  </Card>
+  
+  <Card title="Career coaching" icon="user-tie">
+    Share anonymized export with career coaches for personalized advice.
+  </Card>
+</CardGroup>
+
+---
+
+## Coming Soon
+
+These integrations are on the roadmap:
+
+### Zapier / Make
+
+**Status:** 🔵 Under consideration
+
+Connect PIPELINE to 5,000+ apps via Zapier or Make.
+
+**Possible automations:**
+- New job added → Create Notion page
+- Interview scheduled → Send SMS reminder
+- Offer received → Post to Slack
+- Weekly digest → Send to email
+
+### Telegram Bot
+
+**Status:** 🔵 Under consideration
+
+Alternative to Discord for users who prefer Telegram.
+
+**Features:**
+- Same commands as Discord bot
+- Inline queries for quick stats
+- Push notifications
+
+### LinkedIn API
+
+**Status:** ⚠️ Limited by LinkedIn
+
+Direct LinkedIn integration would be ideal but faces challenges:
+
+- LinkedIn API access is restricted
+- No public API for job applications
+- Scraping violates LinkedIn ToS
+
+**Alternative:** Use browser extension to capture job data and import to PIPELINE.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Job Management" icon="briefcase" href="/guides/job-management">
+    Learn how to organize and track your applications effectively.
+  </Card>
+  
+  <Card title="Analytics" icon="chart-line" href="/guides/analytics">
+    Understand your metrics and optimize your job search strategy.
+  </Card>
+</CardGroup>

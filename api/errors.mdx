@@ -1,0 +1,536 @@
+---
+title: 'Error Codes'
+description: 'Complete reference for all API error codes and error handling'
+icon: 'triangle-exclamation'
+---
+
+## Overview
+
+PIPELINE API uses standard HTTP status codes and detailed error codes to help you understand and handle errors effectively. All errors follow a consistent response format.
+
+<Note>
+  Every error response includes a `requestId` for troubleshooting and support. Include this ID when reporting issues.
+</Note>
+
+## Error Response Format
+
+All API errors return JSON responses in this format:
+
+```json
+{
+  "code": "ERROR_CODE",
+  "status": 400,
+  "message": "Human-readable error message",
+  "details": {
+    "additional": "context"
+  },
+  "errors": [
+    {
+      "field": "company_name",
+      "message": "Company name is required",
+      "value": ""
+    }
+  ],
+  "requestId": "req_abc123",
+  "timestamp": "2026-03-04T12:00:00Z",
+  "apiVersion": "1.0"
+}
+```
+
+### Response Fields
+
+<ResponseField name="code" type="string" required>
+  Machine-readable error code (e.g., `UNAUTHORIZED`, `JOB_NOT_FOUND`)
+</ResponseField>
+
+<ResponseField name="status" type="number" required>
+  HTTP status code (e.g., 400, 401, 404, 500)
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Human-readable error description
+</ResponseField>
+
+<ResponseField name="details" type="object">
+  Additional context about the error (varies by error type)
+</ResponseField>
+
+<ResponseField name="errors" type="array">
+  Field-level validation errors (for validation failures)
+</ResponseField>
+
+<ResponseField name="requestId" type="string">
+  Unique request identifier for tracing and support
+</ResponseField>
+
+<ResponseField name="timestamp" type="string" required>
+  ISO 8601 timestamp when the error occurred
+</ResponseField>
+
+<ResponseField name="apiVersion" type="string" required>
+  API version (currently "1.0")
+</ResponseField>
+
+## Error Categories
+
+<CardGroup cols={2}>
+  <Card title="Authentication (401)" icon="key">
+    9 error codes for authentication failures
+  </Card>
+  <Card title="Authorization (403)" icon="lock">
+    3 error codes for permission issues
+  </Card>
+  <Card title="Not Found (404)" icon="magnifying-glass">
+    6 error codes for missing resources
+  </Card>
+  <Card title="Validation (400)" icon="check">
+    8 error codes for invalid input
+  </Card>
+  <Card title="Rate Limits (429)" icon="gauge">
+    3 error codes for rate limiting
+  </Card>
+  <Card title="Conflicts (409)" icon="code-merge">
+    3 error codes for state conflicts
+  </Card>
+  <Card title="Server Errors (500)" icon="server">
+    5 error codes for server issues
+  </Card>
+  <Card title="Service Unavailable (503)" icon="plug">
+    6 error codes for service failures
+  </Card>
+</CardGroup>
+
+## Authentication Errors (401)
+
+<AccordionGroup>
+  <Accordion title="UNAUTHORIZED">
+    **Status:** 401
+    
+    **Description:** No valid authentication provided
+    
+    **Common Causes:**
+    - Missing Authorization header
+    - Invalid or expired JWT token
+    - Malformed token
+    
+    **Solution:** Check authentication, re-login if needed
+    
+    ```json
+    {
+      "code": "UNAUTHORIZED",
+      "status": 401,
+      "message": "Authentication required"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="INVALID_CREDENTIALS">
+    **Status:** 401
+    
+    **Description:** Email or password is incorrect
+    
+    **Solution:** Verify credentials, use password reset if needed
+  </Accordion>
+
+  <Accordion title="EMAIL_NOT_CONFIRMED">
+    **Status:** 401
+    
+    **Description:** Email address has not been confirmed
+    
+    **Solution:** Check email for confirmation link, request new one
+  </Accordion>
+
+  <Accordion title="SESSION_EXPIRED">
+    **Status:** 401
+    
+    **Description:** Session has expired
+    
+    **Solution:** Re-authenticate
+  </Accordion>
+
+  <Accordion title="TOKEN_EXPIRED">
+    **Status:** 401
+    
+    **Description:** Token has expired (typically after 1 hour)
+    
+    **Solution:** Refresh token or re-authenticate
+  </Accordion>
+</AccordionGroup>
+
+## Validation Errors (400)
+
+Validation errors include detailed field-level information:
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "status": 400,
+  "message": "Request validation failed",
+  "errors": [
+    {
+      "field": "company_name",
+      "message": "Company name is required",
+      "value": ""
+    },
+    {
+      "field": "job_title",
+      "message": "Job title must be at least 2 characters",
+      "value": "a"
+    },
+    {
+      "field": "url",
+      "message": "Must be a valid HTTPS URL",
+      "value": "invalid-url"
+    }
+  ]
+}
+```
+
+### Field Error Structure
+
+<ResponseField name="field" type="string" required>
+  Field name using dot notation for nested fields (e.g., `user.email`)
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Field-specific error message
+</ResponseField>
+
+<ResponseField name="code" type="string">
+  Field-level error code (optional)
+</ResponseField>
+
+<ResponseField name="value" type="any">
+  The invalid value that was provided
+</ResponseField>
+
+### Common Validation Errors
+
+| Code | Description |
+|------|-------------|
+| `VALIDATION_ERROR` | General validation failure |
+| `INVALID_INPUT` | Input format is invalid |
+| `INVALID_URL` | URL format is invalid |
+| `INVALID_EMAIL` | Email format is invalid |
+| `MISSING_REQUIRED_FIELD` | Required field is missing |
+| `FIELD_TOO_LONG` | Field exceeds maximum length |
+| `DUPLICATE_RESOURCE` | Resource already exists |
+
+### Invalid Status Transitions
+
+Job status changes must follow valid transitions:
+
+```json
+{
+  "code": "INVALID_STATUS_TRANSITION",
+  "status": 400,
+  "message": "Cannot transition from 'offer' to 'applied'",
+  "details": {
+    "from": "offer",
+    "to": "applied",
+    "allowed": ["rejected"]
+  }
+}
+```
+
+**Valid Transitions:**
+- `saved` → `applied`, `rejected`
+- `applied` → `interview`, `rejected`
+- `interview` → `offer`, `rejected`
+- `offer` → `rejected`
+- `rejected` → `saved` (re-apply)
+
+## Rate Limit Errors (429)
+
+See the [Rate Limits](/api/rate-limits) page for detailed information.
+
+```json
+{
+  "code": "RATE_LIMIT_EXCEEDED",
+  "status": 429,
+  "message": "Rate limit exceeded",
+  "details": {
+    "retryAfter": 60,
+    "limit": 100,
+    "remaining": 0,
+    "resetAt": "2026-03-04T12:01:00Z"
+  }
+}
+```
+
+## Not Found Errors (404)
+
+Resource-specific not found errors include the resource type and ID:
+
+```json
+{
+  "code": "JOB_NOT_FOUND",
+  "status": 404,
+  "message": "Job not found",
+  "details": {
+    "resourceType": "Job",
+    "resourceId": "123e4567-e89b-12d3-a456-426614174000"
+  }
+}
+```
+
+| Code | Resource Type |
+|------|---------------|
+| `JOB_NOT_FOUND` | Job |
+| `USER_NOT_FOUND` | User |
+| `EVENT_NOT_FOUND` | Event |
+| `INSIGHT_NOT_FOUND` | Insight |
+| `SCRAPER_RUN_NOT_FOUND` | Scraper Run |
+
+## Server Errors (500)
+
+<Warning>
+  Server errors (5xx) are logged automatically. If you encounter persistent server errors, check your configuration and contact support.
+</Warning>
+
+### Common Server Errors
+
+<AccordionGroup>
+  <Accordion title="DATABASE_ERROR">
+    **Status:** 500
+    
+    **Description:** Database operation failed
+    
+    **Common Causes:**
+    - Connection issues
+    - Query timeout
+    - Constraint violation
+    
+    **Solution:** Retry later, check database connection
+    
+    ```json
+    {
+      "code": "DATABASE_ERROR",
+      "status": 500,
+      "message": "Database operation failed",
+      "details": {
+        "table": "jobs",
+        "constraint": "check_salary_range"
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="INTERNAL_ERROR">
+    **Status:** 500
+    
+    **Description:** Internal server error
+    
+    **Solution:** Retry later, contact support if persistent
+  </Accordion>
+
+  <Accordion title="EXPORT_FAILED">
+    **Status:** 500
+    
+    **Description:** Export operation failed
+    
+    **Solution:** Check filters and retry
+  </Accordion>
+
+  <Accordion title="IMPORT_FAILED">
+    **Status:** 500
+    
+    **Description:** Import operation failed
+    
+    **Solution:** Check file format and data
+  </Accordion>
+</AccordionGroup>
+
+## Service Unavailable (503)
+
+External services may be temporarily unavailable:
+
+### AI Service Errors
+
+```json
+{
+  "code": "AI_SERVICE_TIMEOUT",
+  "status": 503,
+  "message": "AI service timed out",
+  "details": {
+    "provider": "openai",
+    "model": "gpt-4",
+    "timeoutMs": 30000
+  }
+}
+```
+
+### Scraper Errors
+
+```json
+{
+  "code": "SCRAPER_TIMEOUT",
+  "status": 503,
+  "message": "Scraper timed out",
+  "details": {
+    "source": "linkedin",
+    "url": "https://linkedin.com/jobs/search",
+    "timeoutMs": 60000,
+    "retryable": true
+  }
+}
+```
+
+### Discord Webhook Errors
+
+```json
+{
+  "code": "DISCORD_WEBHOOK_ERROR",
+  "status": 503,
+  "message": "Discord webhook failed",
+  "details": {
+    "serviceName": "Discord",
+    "externalErrorCode": "50001"
+  }
+}
+```
+
+## Error Handling
+
+### TypeScript Type Guards
+
+Use type guards to handle specific error types:
+
+```typescript
+import { ApiErrorResponse } from '@/types';
+
+function isAuthenticationError(error: ApiErrorResponse): boolean {
+  return error.status === 401;
+}
+
+function isValidationError(error: ApiErrorResponse): boolean {
+  return error.status === 400 || error.code === 'DUPLICATE_RESOURCE';
+}
+
+function isRateLimitError(error: ApiErrorResponse): boolean {
+  return error.status === 429;
+}
+
+function isRetryableError(error: ApiErrorResponse): boolean {
+  return (
+    error.status === 429 ||  // Rate limit
+    error.status === 503 ||  // Service unavailable
+    error.code === 'SCRAPER_TIMEOUT' ||
+    error.code === 'AI_SERVICE_TIMEOUT'
+  );
+}
+```
+
+### React Hook Example
+
+```typescript
+import { useState } from 'react';
+
+export function useApiError() {
+  const [error, setError] = useState<ApiErrorResponse | null>(null);
+  
+  const handleError = (err: ApiErrorResponse) => {
+    setError(err);
+    
+    // Handle specific error types
+    if (isAuthenticationError(err)) {
+      // Redirect to login
+      router.push('/login');
+    } else if (isValidationError(err)) {
+      // Show field-level errors
+      err.errors?.forEach(fieldError => {
+        showError(fieldError.field, fieldError.message);
+      });
+    } else if (isRateLimitError(err)) {
+      // Show retry timer
+      const retryAfter = err.details?.retryAfter;
+      showRetryMessage(retryAfter);
+    }
+  };
+  
+  return { error, handleError };
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Check Error Codes" icon="code">
+    Always check the `code` field, not just the HTTP status:
+    
+    ```typescript
+    if (error.code === 'JOB_NOT_FOUND') {
+      // Handle specifically
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Display Field Errors" icon="input-text">
+    Show field-level validation errors next to form fields:
+    
+    ```typescript
+    error.errors?.forEach(({ field, message }) => {
+      setFieldError(field, message);
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Implement Retry Logic" icon="rotate">
+    Retry retryable errors with exponential backoff:
+    
+    ```typescript
+    if (isRetryableError(error)) {
+      await retryWithBackoff(operation);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Log Request IDs" icon="clipboard">
+    Include `requestId` in error logs and support tickets:
+    
+    ```typescript
+    console.error(`Error ${error.code} [${error.requestId}]`);
+    ```
+  </Accordion>
+
+  <Accordion title="Handle Gracefully" icon="hand">
+    Never expose raw error details to end users:
+    
+    ```typescript
+    const userMessage = error.status >= 500
+      ? 'Something went wrong. Please try again.'
+      : error.message;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<Steps>
+  <Step title="Check the Error Code">
+    Use the specific error code to understand what went wrong
+  </Step>
+  <Step title="Review the Details">
+    Check the `details` object for additional context
+  </Step>
+  <Step title="Check Rate Limits">
+    Verify you haven't exceeded rate limits (see headers)
+  </Step>
+  <Step title="Retry if Retryable">
+    Use exponential backoff for 429 and 503 errors
+  </Step>
+  <Step title="Contact Support">
+    Include the `requestId` when reporting persistent issues
+  </Step>
+</Steps>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Rate Limits" icon="gauge" href="/api/rate-limits">
+    Learn about API rate limiting
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/api/webhooks">
+    Webhook error handling
+  </Card>
+</CardGroup>

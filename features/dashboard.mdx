@@ -1,0 +1,534 @@
+---
+title: 'Dashboard'
+description: 'Track your job search metrics, application rates, interview conversion, and activity timeline with real-time analytics.'
+icon: 'chart-line'
+---
+
+## Overview
+
+The **Dashboard** provides a comprehensive view of your job search performance with real-time metrics, trend analysis, and activity tracking.
+
+<Frame>
+</Frame>
+
+<Info>
+  All dashboard data is computed server-side via `/api/analytics/dashboard` and cached for performance.
+</Info>
+
+## Layout
+
+The dashboard uses a two-column layout:
+
+<CardGroup cols={2}>
+  <Card title="Main Content" icon="chart-column">
+    - Stat cards (4 key metrics)
+    - Applications over time chart
+    - Metrics grid (response rate, sources)
+  </Card>
+  <Card title="Activity Panel" icon="clock">
+    - Recent application activity
+    - Status change notifications
+    - Quick action links
+  </Card>
+</CardGroup>
+
+## Stat Cards
+
+Four key metrics are displayed at the top with week-over-week trends:
+
+<Tabs>
+  <Tab title="Total Applications">
+    **Total Applications** tracks all jobs where `status` is `applied`, `interview`, `offer`, or `rejected`.
+
+    ```typescript
+    // Stat card configuration (src/components/dashboard/stat-cards.tsx:12-19)
+    {
+      key: 'totalApplications',
+      changeKey: 'applicationsChange',
+      label: 'Total Applications',
+      icon: <BarChart3 className="w-3.5 h-3.5 text-terminal-500" />,
+      statusColor: 'bg-terminal-500',
+    }
+    ```
+
+    **Calculation:**
+    - Count all jobs with `applied_at` timestamp
+    - Compare to previous week's count
+    - Display as integer with `+X%` or `-X%` change
+
+    <Frame>
+    </Frame>
+  </Tab>
+
+  <Tab title="Active Companies">
+    **Active Companies** counts unique companies where you have jobs in `applied` or `interview` status.
+
+    ```typescript
+    // Example query logic
+    const activeCompanies = new Set(
+      jobs
+        .filter(j => ['applied', 'interview'].includes(j.status))
+        .map(j => j.company_name)
+    ).size
+    ```
+
+    **Use Case:** Helps you track your application diversity and avoid over-concentration.
+  </Tab>
+
+  <Tab title="Interview Rate">
+    **Interview Rate** measures the percentage of applications that reach interview stage.
+
+    ```typescript
+    // Formula
+    const interviewRate = (interviewCount / appliedCount) * 100
+    ```
+
+    **Benchmarks:**
+    - **Under 10%** — Below average, review application quality
+    - **10-25%** — Market average for tech roles
+    - **Over 25%** — Strong performance
+
+    <Tip>
+      If your interview rate drops below 15%, check the [Intel page](/features/intel) for recommendations on improving your targeting.
+    </Tip>
+  </Tab>
+
+  <Tab title="Avg Match Score">
+    **Avg Match Score** is the mean of all `ai_match_score` values for jobs you've applied to.
+
+    ```typescript
+    // Score calculation
+    const avgMatchScore = jobs
+      .filter(j => j.status !== 'saved' && j.ai_match_score !== null)
+      .reduce((sum, j) => sum + j.ai_match_score!, 0) / jobs.length
+    ```
+
+    **Interpretation:**
+    - **80%+** — You're applying to well-matched roles
+    - **60-79%** — Decent targeting, room for improvement
+    - **Under 60%** — Consider being more selective
+  </Tab>
+</Tabs>
+
+### Stat Card Features
+
+<AccordionGroup>
+  <Accordion title="Trend Indicators">
+    Each stat shows a week-over-week change with visual indicator:
+
+    ```tsx
+    // Trend display (src/components/dashboard/stat-cards.tsx:76-84)
+    <div className={cn(
+      'flex items-center gap-1',
+      isPositive ? 'text-terminal-500' : 'text-red-400'
+    )}>
+      <span>{isPositive ? '▲' : '▼'}</span>
+      <span>{isPositive ? '+' : ''}{change.toFixed(1)}%</span>
+      <span className="text-muted-foreground">vs last week</span>
+    </div>
+    ```
+
+    - **Green ▲** — Metric improved
+    - **Red ▼** — Metric declined
+  </Accordion>
+
+  <Accordion title="Sparklines">
+    Each card includes a mini sparkline chart showing the 7-day trend:
+
+    ```tsx
+    // Sparkline component (src/components/dashboard/sparkline.tsx)
+    <Sparkline
+      data={[65, 72, 68, 75, 82, 79, 85]}
+      color={isPositive ? 'hsl(0 0% 75%)' : 'hsl(0 65% 58%)'}
+    />
+    ```
+
+    <Frame>
+    </Frame>
+  </Accordion>
+
+  <Accordion title="Status Indicators">
+    Each card has a small colored square in the top-right corner indicating metric health:
+
+    - **Green** — Positive trend
+    - **Red** — Negative trend
+    - **Color-coded** by metric type (terminal-500, blue, purple, yellow)
+  </Accordion>
+</AccordionGroup>
+
+## Applications Chart
+
+The main chart displays your application volume over time with status breakdowns:
+
+<Steps>
+  <Step title="Time Series Data">
+    Data is aggregated by day for the last 30 days:
+
+    ```typescript
+    // Time series data structure (src/lib/types/dashboard.ts:33-37)
+    export interface TimeSeriesData {
+      date: string;      // "2026-03-01"
+      value: number;     // Total applications on this date
+      saved?: number;    // Jobs saved
+      applied?: number;  // Jobs applied
+      interview?: number;
+      offer?: number;
+      rejected?: number;
+    }
+    ```
+  </Step>
+
+  <Step title="Multi-Series Chart">
+    The chart component supports overlaying multiple status series:
+
+    ```tsx
+    // Chart usage (src/views/app/dashboard.tsx:77-80)
+    <ApplicationsChart 
+      data={data.applicationsOverTime}
+      statusData={data.statusOverTime}
+    />
+    ```
+
+    <Frame>
+    </Frame>
+  </Step>
+
+  <Step title="Interactive Legend">
+    Click legend items to toggle series visibility and isolate specific statuses.
+  </Step>
+</Steps>
+
+<Check>
+  The chart uses **Recharts** or similar library for responsive, accessible visualizations.
+</Check>
+
+## Metrics Grid
+
+Below the main chart, the metrics grid displays secondary KPIs:
+
+<CardGroup cols={3}>
+  <Card title="Response Rate" icon="reply">
+    **Response Rate** = `(interviews + offers) / applied * 100%`
+
+    Measures how often you hear back from applications.
+  </Card>
+  <Card title="Avg Response Time" icon="clock">
+    **Avg Response Time** in days between `applied_at` and `interview_at` or `rejected_at`.
+
+    Helps set expectations for follow-ups.
+  </Card>
+  <Card title="Source Breakdown" icon="network">
+    **By Source** shows application distribution:
+    - BrighterMonday: 45%
+    - Fuzu: 30%
+    - LinkedIn: 15%
+    - Manual: 10%
+  </Card>
+</CardGroup>
+
+### Metrics Grid Implementation
+
+```tsx
+// Metrics grid component (src/views/app/dashboard.tsx:83-87)
+<MetricsGrid 
+  responseRate={data.responseRate}
+  avgResponseTime={data.avgResponseTime}
+  bySource={data.bySource}
+/>
+```
+
+<CodeGroup>
+```typescript Response Rate
+interface MetricsGridProps {
+  responseRate: number;      // 0-100 percentage
+  avgResponseTime: number;   // days (e.g., 7.5)
+  bySource: SourceBreakdown[];
+}
+```
+
+```typescript Source Breakdown
+export interface SourceBreakdown {
+  source: string;      // 'brightermonday', 'fuzu', etc.
+  count: number;       // 25
+  percentage: number;  // 45.5
+}
+```
+</CodeGroup>
+
+## Activity Panel
+
+The right sidebar displays a chronological activity feed:
+
+<Tabs>
+  <Tab title="Activity Types">
+    Five activity types are tracked:
+
+    ```typescript
+    // Activity types (src/lib/types/dashboard.ts:52-65)
+    export interface ActivityItem {
+      id: string;
+      type: 'application' | 'interview' | 'status_change' | 'viewed' | 'match';
+      title: string;
+      description: string;
+      timestamp: string;    // ISO 8601
+      action?: {
+        label: string;
+        href?: string;      // Link to job drawer or external page
+        onClick?: () => void;
+      };
+    }
+    ```
+
+    **Icon Mapping:**
+    - `application` → Send icon
+    - `interview` → Mic2 icon
+    - `status_change` → RefreshCw icon
+    - `viewed` → Eye icon
+    - `match` → Target icon
+  </Tab>
+
+  <Tab title="Activity Examples">
+    ```json
+    [
+      {
+        "id": "act_1",
+        "type": "application",
+        "title": "Applied to Senior Engineer",
+        "description": "Acme Corp · San Francisco",
+        "timestamp": "2026-03-04T09:30:00Z",
+        "action": {
+          "label": "View Job",
+          "href": "/tracker?job=uuid"
+        }
+      },
+      {
+        "id": "act_2",
+        "type": "match",
+        "title": "New High Match",
+        "description": "87% match · Staff Engineer at Stripe",
+        "timestamp": "2026-03-04T08:15:00Z"
+      }
+    ]
+    ```
+  </Tab>
+
+  <Tab title="Timestamps">
+    Relative timestamps are displayed in terminal-style format:
+
+    ```typescript
+    // Timestamp formatting (src/components/dashboard/activity-panel.tsx:102-113)
+    function formatTimestamp(timestamp: string): string {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      const minutes = Math.floor(diff / (1000 * 60));
+      const hours = Math.floor(minutes / 60);
+
+      if (minutes < 1) return 'JUST NOW';
+      if (minutes < 60) return `${minutes}M AGO`;
+      if (hours < 24) return `${hours}H AGO`;
+      return `${Math.floor(hours / 24)}D AGO`;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Toggle Activity Panel
+
+Click **HIDE_ACTIVITY** / **SHOW_ACTIVITY** button to collapse the sidebar:
+
+```tsx
+// Toggle implementation (src/views/app/dashboard.tsx:14-16, 49-68)
+const [showActivity, setShowActivity] = React.useState(true);
+
+<Button onClick={() => setShowActivity(!showActivity)}>
+  {showActivity ? (
+    <><PanelLeft /> HIDE_ACTIVITY</>
+  ) : (
+    <><PanelRight /> SHOW_ACTIVITY</>
+  )}
+</Button>
+
+{showActivity && (
+  <div className="w-full lg:w-80">
+    <ActivityPanel activities={data.activities} />
+  </div>
+)}
+```
+
+## Data Structure
+
+### DashboardStats Type
+
+```typescript
+// Complete dashboard data type (src/lib/types/dashboard.ts:3-31)
+export interface DashboardStats {
+  // Overview metrics
+  totalApplications: number;
+  applicationsChange: number; // percentage
+  
+  activeCompanies: number;
+  companiesChange: number;
+  
+  interviewRate: number; // percentage
+  interviewRateChange: number;
+  
+  avgMatchScore: number;
+  matchScoreChange: number;
+
+  // Time series data
+  applicationsOverTime: TimeSeriesData[];
+  statusOverTime: StatusTimeSeries[];
+
+  // Breakdown
+  byStatus: Record<JobStatus, number>;
+  bySource: SourceBreakdown[];
+  
+  // Response metrics
+  responseRate: number;
+  avgResponseTime: number; // days
+
+  // Activities
+  activities: ActivityItem[];
+}
+```
+
+## API Endpoint
+
+### GET /api/analytics/dashboard
+
+Fetches all dashboard metrics for the authenticated user.
+
+<ParamField query="period" type="string" default="30d">
+  Time period for metrics: `7d`, `30d`, `90d`, or `all`
+</ParamField>
+
+**Response:**
+
+```json
+{
+  "totalApplications": 42,
+  "applicationsChange": 12.5,
+  "activeCompanies": 18,
+  "companiesChange": 8.3,
+  "interviewRate": 23.8,
+  "interviewRateChange": -2.1,
+  "avgMatchScore": 78.4,
+  "matchScoreChange": 5.2,
+  "applicationsOverTime": [
+    { "date": "2026-03-01", "value": 5, "applied": 3, "interview": 2 },
+    { "date": "2026-03-02", "value": 7, "applied": 5, "interview": 1, "offer": 1 }
+  ],
+  "bySource": [
+    { "source": "brightermonday", "count": 19, "percentage": 45.2 },
+    { "source": "linkedin", "count": 12, "percentage": 28.6 }
+  ],
+  "responseRate": 31.5,
+  "avgResponseTime": 8.2,
+  "activities": []
+}
+```
+
+<ResponseExample>
+```typescript
+// React Query hook (src/hooks/use-dashboard.ts)
+import { useQuery } from '@tanstack/react-query'
+
+export function useDashboard() {
+  return useQuery({
+    queryKey: ['dashboard'],
+    queryFn: async () => {
+      const res = await fetch('/api/analytics/dashboard')
+      if (!res.ok) throw new Error('Failed to fetch dashboard')
+      return res.json() as Promise<DashboardStats>
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}
+```
+</ResponseExample>
+
+## Loading States
+
+The dashboard displays a branded loading animation while fetching data:
+
+```tsx
+// Loading screen (src/views/app/dashboard.tsx:18-27)
+if (isLoading) {
+  return (
+    <div className="flex items-center justify-center h-[60vh]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-terminal-500/20 border-t-terminal-500 rounded-full animate-spin" />
+        <div className="text-terminal-500 font-mono text-sm animate-pulse">
+          SYNCING_METRICS...
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+<Frame>
+</Frame>
+
+## Empty State
+
+If no data exists, display a helpful empty state:
+
+```tsx
+// Empty state (src/views/app/dashboard.tsx:29-42)
+if (!data) {
+  return (
+    <PageWrapper title="Dashboard" description="Track your job search metrics and progress">
+      <div className="glass rounded-lg p-12 text-center">
+        <p className="text-muted-foreground font-mono">NO_DATA_AVAILABLE</p>
+        <p className="text-sm text-muted-foreground mt-2 font-mono opacity-50">
+          START_TRACKING_JOBS_TO_SEE_METRICS
+        </p>
+      </div>
+    </PageWrapper>
+  );
+}
+```
+
+## Performance Optimization
+
+<AccordionGroup>
+  <Accordion title="Server-Side Computation">
+    All metrics are computed in `/api/analytics/dashboard` using SQL aggregations for speed:
+
+    ```sql
+    -- Example: Interview rate calculation
+    SELECT 
+      COUNT(*) FILTER (WHERE status IN ('interview', 'offer')) * 100.0 / 
+      COUNT(*) FILTER (WHERE status != 'saved') AS interview_rate
+    FROM jobs
+    WHERE user_id = $1 AND deleted_at IS NULL;
+    ```
+  </Accordion>
+
+  <Accordion title="Caching">
+    Dashboard data is cached with a 5-minute `staleTime` in React Query to avoid redundant fetches.
+  </Accordion>
+
+  <Accordion title="Lazy Loading">
+    The activity panel loads separately from main metrics to prioritize above-the-fold content.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Intel" icon="brain" href="/features/intel">
+    Get AI-powered insights and recommendations
+  </Card>
+  <Card title="Tracker" icon="grip-vertical" href="/features/tracker">
+    Manage your job applications
+  </Card>
+  <Card title="Analytics API" icon="code" href="/api/analytics">
+    API reference for dashboard data
+  </Card>
+  <Card title="Export Data" icon="download" href="/api/export">
+    Export your metrics as CSV or JSON
+  </Card>
+</CardGroup>

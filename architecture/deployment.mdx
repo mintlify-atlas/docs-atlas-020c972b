@@ -1,0 +1,618 @@
+---
+title: 'Deployment Guide'
+description: 'Deploy Pipeline to production with Vercel and Supabase'
+---
+
+## Overview
+
+This guide covers deploying Pipeline to production using **Vercel** for the Next.js application and **Supabase** for the database.
+
+<Info>
+  **Recommended Stack**: Vercel (frontend) + Supabase Pro (database)
+</Info>
+
+---
+
+## Pre-Deployment Checklist
+
+### Code Quality
+
+<Steps>
+  <Step title="All tests passing">
+    ```bash
+    npm test
+    ```
+    Expected: 345/345 tests passing
+  </Step>
+  
+  <Step title="No TypeScript errors">
+    ```bash
+    npm run typecheck
+    ```
+  </Step>
+  
+  <Step title="No ESLint warnings">
+    ```bash
+    npm run lint
+    ```
+  </Step>
+  
+  <Step title="Clean git state">
+    ```bash
+    git status
+    ```
+    Should show "working tree clean"
+  </Step>
+</Steps>
+
+### Database
+
+- ✅ All migrations applied (`supabase db push`)
+- ✅ Rollback migrations tested
+- ✅ Database types generated and committed
+- ✅ RLS enabled on all tables
+
+### Security
+
+- ✅ No secrets in code (check `.env` is in `.gitignore`)
+- ✅ Environment variables configured
+- ✅ Service role key secured (server-only)
+- ✅ Rate limiting enabled
+
+---
+
+## Step 1: Deploy Supabase Database
+
+### 1.1 Create Supabase Project
+
+<Steps>
+  <Step title="Sign up for Supabase">
+    Go to [supabase.com](https://supabase.com) and create an account
+  </Step>
+  
+  <Step title="Create new project">
+    - **Name**: `pipeline-production`
+    - **Database Password**: Generate strong password (save securely)
+    - **Region**: Choose closest to your users (e.g., `us-east-1`)
+    - **Plan**: Pro (recommended for production)
+  </Step>
+  
+  <Step title="Wait for provisioning">
+    Takes 2-3 minutes to provision the database
+  </Step>
+</Steps>
+
+### 1.2 Get Project Credentials
+
+<Accordion title="Copy these values from Supabase Dashboard">
+  Go to **Settings → API**:
+  
+  - **Project URL**: `https://xxxxx.supabase.co`
+  - **anon/public key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+  - **service_role key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` ⚠️ Keep secret!
+  
+  Go to **Settings → Database**:
+  
+  - **Connection string**: For direct access (optional)
+  - **Project Ref**: 20-character ID (e.g., `abcdefghijklmnopqrst`)
+</Accordion>
+
+### 1.3 Link Local Project
+
+```bash
+# Install Supabase CLI
+curl -fsSL https://supabase.com/install.sh | bash
+
+# Login
+supabase login
+
+# Link to production project
+supabase link --project-ref <your-project-ref>
+
+# Verify link
+supabase status
+```
+
+### 1.4 Apply Migrations
+
+```bash
+# Review migrations first
+supabase migration list
+
+# Push all migrations to production
+supabase db push
+```
+
+**Expected output:**
+```
+Applying migration 001_tables.sql...
+Applying migration 002_indexes.sql...
+...
+Applying migration 013_fulltext_search_weighting.sql...
+Database pushed successfully.
+```
+
+### 1.5 Verify Database
+
+```bash
+# Generate types from production schema
+supabase gen types typescript --project-ref <project-ref> > src/lib/types/database.types.ts
+
+# Check for type drift
+npm run typecheck
+```
+
+<Accordion title="Verify RLS is enabled">
+  ```sql
+  -- Connect to production database
+  psql -h db.<project-ref>.supabase.co -U postgres -d postgres
+  
+  -- Check RLS status
+  SELECT tablename, rowsecurity 
+  FROM pg_tables 
+  WHERE schemaname = 'public';
+  
+  -- All tables should show 't' (true)
+  ```
+</Accordion>
+
+---
+
+## Step 2: Deploy to Vercel
+
+### 2.1 Prepare Repository
+
+<Steps>
+  <Step title="Push to GitHub">
+    ```bash
+    git add .
+    git commit -m "chore: prepare for production deployment"
+    git push origin main
+    ```
+  </Step>
+  
+  <Step title="Ensure .gitignore includes">
+    ```gitignore
+    .env
+    .env.local
+    .env.production
+    .env.*.local
+    .next/
+    node_modules/
+    ```
+  </Step>
+</Steps>
+
+### 2.2 Create Vercel Project
+
+<Steps>
+  <Step title="Sign up for Vercel">
+    Go to [vercel.com](https://vercel.com) and sign up with GitHub
+  </Step>
+  
+  <Step title="Import repository">
+    - Click **"New Project"**
+    - Select your GitHub repository
+    - Vercel auto-detects Next.js configuration
+  </Step>
+  
+  <Step title="Configure build settings">
+    - **Framework Preset**: Next.js
+    - **Build Command**: `npm run build`
+    - **Output Directory**: `.next` (auto-detected)
+    - **Install Command**: `npm ci`
+  </Step>
+</Steps>
+
+### 2.3 Configure Environment Variables
+
+<Accordion title="Add these environment variables in Vercel">
+  Go to **Settings → Environment Variables**:
+  
+  ```bash
+  # Supabase Configuration (required)
+  NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  
+  # App Configuration (required)
+  NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
+  
+  # Optional: AI Service
+  OPENAI_API_KEY=sk-...
+  
+  # Optional: Discord Notifications
+  DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+  ```
+  
+  <Warning>
+    Set environment scope to **Production**, **Preview**, and **Development** as needed.
+  </Warning>
+</Accordion>
+
+### 2.4 Deploy
+
+<Steps>
+  <Step title="Trigger deployment">
+    Click **"Deploy"** in Vercel dashboard
+  </Step>
+  
+  <Step title="Monitor build logs">
+    Watch for any errors in the build process
+  </Step>
+  
+  <Step title="Wait for deployment">
+    Takes 2-5 minutes for initial deployment
+  </Step>
+</Steps>
+
+---
+
+## Step 3: Post-Deployment Verification
+
+### 3.1 Health Checks
+
+<CodeGroup>
+```bash Test homepage
+curl https://your-app.vercel.app/
+```
+
+```bash Test API health
+curl https://your-app.vercel.app/api/health
+```
+
+```bash Test authentication
+curl -X POST https://your-app.vercel.app/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"wrongpassword"}'
+
+# Expected: 401 Unauthorized
+```
+</CodeGroup>
+
+### 3.2 Database Connection
+
+<Steps>
+  <Step title="Test RLS enforcement">
+    - Create a test user account
+    - Login and create a job
+    - Verify job appears in dashboard
+    - Logout and login as different user
+    - Verify first user's job is NOT visible
+  </Step>
+  
+  <Step title="Test full-text search">
+    - Create jobs with various titles/descriptions
+    - Use search functionality
+    - Verify results are ranked correctly
+  </Step>
+</Steps>
+
+### 3.3 Performance Metrics
+
+Monitor these metrics in Vercel Analytics:
+
+<CardGroup cols={2}>
+  <Card title="Core Web Vitals" icon="gauge">
+    - **LCP**: < 2.5s
+    - **FID**: < 100ms
+    - **CLS**: < 0.1
+  </Card>
+  
+  <Card title="API Latency" icon="clock">
+    - **p95**: < 500ms
+    - **p99**: < 1000ms
+  </Card>
+</CardGroup>
+
+---
+
+## Step 4: Configure Supabase Production Settings
+
+### 4.1 Authentication Settings
+
+<Accordion title="Email Templates">
+  Go to **Authentication → Email Templates** in Supabase:
+  
+  - Customize confirmation email
+  - Customize password reset email
+  - Add your branding/logo
+</Accordion>
+
+<Accordion title="Site URL & Redirect URLs">
+  Go to **Authentication → URL Configuration**:
+  
+  ```
+  Site URL: https://your-app.vercel.app
+  
+  Redirect URLs:
+  - https://your-app.vercel.app/auth/callback
+  - https://your-app.vercel.app/**
+  ```
+</Accordion>
+
+### 4.2 Database Settings
+
+<Accordion title="Connection Pooling">
+  Go to **Settings → Database**:
+  
+  - **Enable Connection Pooling**: ✅
+  - **Mode**: Transaction (recommended)
+  - **Pool Size**: Based on your plan (Pro: 100)
+</Accordion>
+
+<Accordion title="Backups">
+  Supabase Pro includes automated daily backups:
+  
+  - **Retention**: 7 days
+  - **Point-in-time Recovery**: Available
+  
+  Manual backup (optional):
+  ```bash
+  pg_dump -h db.<project-ref>.supabase.co -U postgres postgres > backup-$(date +%Y%m%d).sql
+  ```
+</Accordion>
+
+### 4.3 API Settings
+
+<Accordion title="CORS & Rate Limiting">
+  Go to **Settings → API**:
+  
+  - **CORS Origins**: Add your production domain
+  - **Rate Limiting**: Configure based on your plan
+  - **JWT Expiry**: Default (1 hour) or custom
+</Accordion>
+
+---
+
+## Monitoring & Observability
+
+### Vercel Analytics
+
+<CardGroup cols={2}>
+  <Card title="Web Analytics" icon="chart-line">
+    Real-time visitor analytics and Core Web Vitals
+  </Card>
+  
+  <Card title="Runtime Logs" icon="terminal">
+    Function logs, errors, and performance metrics
+  </Card>
+</CardGroup>
+
+### Supabase Dashboard
+
+<CardGroup cols={2}>
+  <Card title="Database Health" icon="database">
+    Monitor connection pool, query performance, table sizes
+  </Card>
+  
+  <Card title="API Usage" icon="chart-simple">
+    Track API requests, bandwidth, and storage
+  </Card>
+</CardGroup>
+
+### Set Up Alerts
+
+<Accordion title="Vercel Integrations">
+  Go to **Integrations** in Vercel:
+  
+  - **Slack**: Deploy notifications
+  - **Discord**: Error alerts
+  - **Sentry**: Error tracking (optional)
+</Accordion>
+
+---
+
+## Rollback Procedures
+
+### Quick Rollback (Vercel)
+
+<Steps>
+  <Step title="Open Vercel Dashboard">
+    Go to **Deployments** tab
+  </Step>
+  
+  <Step title="Find previous deployment">
+    Locate the last known good deployment
+  </Step>
+  
+  <Step title="Promote to production">
+    Click **"Promote to Production"** on that deployment
+  </Step>
+</Steps>
+
+<Tip>
+  Vercel keeps all previous deployments. Rollback is instant (no rebuild required).
+</Tip>
+
+### Database Rollback
+
+<Accordion title="Rollback single migration">
+  ```bash
+  # Revert migration status
+  supabase migration repair <version> --status reverted
+  
+  # Apply rollback migration
+  psql $DATABASE_URL < supabase/migrations/<version>.down.sql
+  ```
+</Accordion>
+
+<Accordion title="Full database restore">
+  ```bash
+  # Restore from Supabase backup (via dashboard)
+  # Or restore from manual backup:
+  psql $DATABASE_URL < backup-20260225.sql
+  ```
+</Accordion>
+
+---
+
+## Environment Variables Reference
+
+<ParamField path="NEXT_PUBLIC_SUPABASE_URL" type="string" required>
+  Your Supabase project URL (e.g., `https://xxxxx.supabase.co`)
+</ParamField>
+
+<ParamField path="NEXT_PUBLIC_SUPABASE_ANON_KEY" type="string" required>
+  Supabase anonymous/public key (safe to expose to client)
+</ParamField>
+
+<ParamField path="SUPABASE_SERVICE_ROLE_KEY" type="string" required>
+  Supabase service role key (bypasses RLS - keep secret!)
+</ParamField>
+
+<ParamField path="NEXT_PUBLIC_APP_URL" type="string" required>
+  Your production app URL (e.g., `https://your-app.vercel.app`)
+</ParamField>
+
+<ParamField path="OPENAI_API_KEY" type="string">
+  OpenAI API key for AI job matching (optional)
+</ParamField>
+
+<ParamField path="DISCORD_WEBHOOK_URL" type="string">
+  Discord webhook for notifications (optional)
+</ParamField>
+
+---
+
+## Deployment Checklist
+
+<Steps>
+  <Step title="Code & Tests" icon="check">
+    - ✅ All tests passing (345/345)
+    - ✅ No TypeScript errors
+    - ✅ No ESLint warnings
+    - ✅ Code committed and pushed
+  </Step>
+  
+  <Step title="Database" icon="database">
+    - ✅ Supabase project created
+    - ✅ All migrations applied
+    - ✅ RLS enabled on all tables
+    - ✅ Database types generated
+    - ✅ Backups enabled
+  </Step>
+  
+  <Step title="Vercel" icon="rocket">
+    - ✅ Project created and linked to GitHub
+    - ✅ Environment variables configured
+    - ✅ Build successful
+    - ✅ Domain configured (if custom)
+  </Step>
+  
+  <Step title="Post-Deploy" icon="clipboard-check">
+    - ✅ Health checks passing
+    - ✅ Authentication working
+    - ✅ RLS enforced (tested)
+    - ✅ Monitoring configured
+    - ✅ Alerts set up
+  </Step>
+</Steps>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Build fails on Vercel">
+    **Common causes:**
+    - Missing environment variables
+    - TypeScript errors not caught locally
+    - Node version mismatch
+    
+    **Solution:**
+    ```bash
+    # Run build locally
+    npm run build
+    
+    # Check Node version matches Vercel
+    node --version  # Should be 18.x or 20.x
+    ```
+  </Accordion>
+
+  <Accordion title="Database connection fails">
+    **Symptoms:**
+    - 500 errors on API calls
+    - "connection refused" in logs
+    
+    **Solution:**
+    - Verify `NEXT_PUBLIC_SUPABASE_URL` is correct
+    - Check `SUPABASE_SERVICE_ROLE_KEY` is set
+    - Test connection from Vercel function logs
+  </Accordion>
+
+  <Accordion title="RLS blocks all queries">
+    **Symptoms:**
+    - Users can't see their own data
+    - Empty results for all queries
+    
+    **Solution:**
+    ```sql
+    -- Check RLS is enabled
+    SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public';
+    
+    -- Check policies exist
+    SELECT policyname, cmd FROM pg_policies WHERE schemaname = 'public';
+    
+    -- Test auth.uid() is set
+    SELECT auth.uid();
+    ```
+  </Accordion>
+
+  <Accordion title="Type drift detected">
+    **Solution:**
+    ```bash
+    # Regenerate types from production
+    supabase gen types typescript --project-ref <project-ref> > src/lib/types/database.types.ts
+    
+    # Commit and redeploy
+    git add src/lib/types/database.types.ts
+    git commit -m "chore: sync database types"
+    git push
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps After Deployment
+
+<CardGroup cols={2}>
+  <Card title="Monitor Performance" icon="chart-line">
+    Watch Vercel Analytics for Core Web Vitals and API latency
+  </Card>
+  
+  <Card title="Set Up Monitoring" icon="bell">
+    Configure error tracking (Sentry) and uptime monitoring
+  </Card>
+  
+  <Card title="Enable Analytics" icon="chart-simple">
+    Integrate analytics (Plausible, PostHog) for user insights
+  </Card>
+  
+  <Card title="Plan Scaling" icon="arrow-up-right-dots">
+    Review database query performance and optimize indexes
+  </Card>
+</CardGroup>
+
+---
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="Vercel Docs" href="https://vercel.com/docs" icon="book">
+    Official Vercel documentation
+  </Card>
+  
+  <Card title="Supabase Docs" href="https://supabase.com/docs" icon="book">
+    Official Supabase documentation
+  </Card>
+  
+  <Card title="Next.js Deployment" href="https://nextjs.org/docs/deployment" icon="book">
+    Next.js deployment guide
+  </Card>
+  
+  <Card title="Production Checklist" href="/architecture/deployment" icon="clipboard-check">
+    Comprehensive production checklist
+  </Card>
+</CardGroup>

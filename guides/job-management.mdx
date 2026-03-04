@@ -1,0 +1,362 @@
+---
+title: Job Management
+description: Learn how to track job applications through the complete lifecycle from saved to offer
+---
+
+PIPELINE helps you manage every stage of your job search. This guide covers the complete job application lifecycle and best practices for tracking your progress.
+
+## Job Lifecycle
+
+Every job application moves through a series of statuses that represent your progress:
+
+<Steps>
+  <Step title="Saved">
+    **Initial stage** — You've found a job listing that interests you but haven't applied yet.
+    
+    **Icon:** `Database`  
+    **Color:** Gray
+    
+    **Common actions:**
+    - Research the company
+    - Tailor your resume
+    - Prepare cover letter
+    - Add notes about requirements
+  </Step>
+
+  <Step title="Applied">
+    **Application submitted** — You've sent your application and are waiting for a response.
+    
+    **Icon:** `Terminal`  
+    **Color:** Blue
+    
+    **What to track:**
+    - Application date
+    - Application method (LinkedIn, company site, etc.)
+    - Any confirmation emails
+    - Expected response timeline
+  </Step>
+
+  <Step title="Interview">
+    **Interview scheduled** — You've received a response and have one or more interviews scheduled.
+    
+    **Icon:** `Cpu`  
+    **Color:** Yellow
+    
+    **Preparation checklist:**
+    - Research interviewer(s) on LinkedIn
+    - Prepare STAR examples
+    - Review technical requirements
+    - Schedule calendar event (auto-created if Calendar integration is enabled)
+  </Step>
+
+  <Step title="Offer">
+    **Offer received** — You've received a job offer.
+    
+    **Icon:** `Zap`  
+    **Color:** Green
+    
+    **Decision factors:**
+    - Salary and benefits
+    - Growth opportunities
+    - Team and culture
+    - Work-life balance
+    - Counter-offer strategy
+  </Step>
+
+  <Step title="Rejected">
+    **Not selected** — The company declined your application or you declined an offer.
+    
+    **Icon:** `Slash`  
+    **Color:** Red
+    
+    **Learn from it:**
+    - Request feedback if possible
+    - Note what went wrong
+    - Update your approach
+    - Keep the company in your network
+  </Step>
+</Steps>
+
+---
+
+## Adding a New Job
+
+There are multiple ways to add jobs to your tracker:
+
+<Tabs>
+  <Tab title="Manual Entry">
+    Use this method when you find a job on any site.
+    
+    1. Press `⌘ N` or click "Add Job" in the Tracker
+    2. Fill in required fields:
+       - **Company Name** (required)
+       - **Job Title** (required)
+    3. Add optional details:
+       - Job URL
+       - Location
+       - Salary range
+       - Job description
+       - Source (LinkedIn, BrighterMonday, Fuzu, etc.)
+    4. Set initial status (usually "Saved" or "Applied")
+    5. Add private notes
+    6. Click "Add Job"
+  </Tab>
+  
+  <Tab title="Auto-Scraper (Coming Soon)">
+    The scraper service automatically finds and imports jobs from:
+    
+    - **BrighterMonday** — East African job board
+    - **Fuzu** — Pan-African job platform
+    - **LinkedIn** — Global professional network
+    
+    All scraped jobs start with status "Saved". Review and update them as you apply.
+    
+    <Note>Scraper service is in development. Manual entry is currently the primary method.</Note>
+  </Tab>
+</Tabs>
+
+---
+
+## Job Details and Actions
+
+Click any job to open the detail drawer with full information and actions:
+
+### Available Actions
+
+<AccordionGroup>
+  <Accordion title="Change Status" icon="arrows-rotate">
+    Update the job's lifecycle stage:
+    
+    1. Click the status badge in the drawer
+    2. Select new status from dropdown
+    3. Change is saved automatically
+    4. Timeline event is created
+    5. Discord notification sent (if enabled)
+  </Accordion>
+
+  <Accordion title="Edit Job Details" icon="pen-to-square">
+    Modify any job information:
+    
+    1. Click "Edit" button in drawer
+    2. Update fields as needed
+    3. Click "Save Changes"
+    
+    **Editable fields:**
+    - Company name and job title
+    - URL and location
+    - Salary range
+    - Description
+    - Source
+    - Private notes
+  </Accordion>
+
+  <Accordion title="Add Notes" icon="note-sticky">
+    Keep private notes about the application:
+    
+    - Interview preparation notes
+    - Salary negotiation strategy
+    - Company culture observations
+    - Follow-up reminders
+    - Contact information
+    
+    Notes are **completely private** and never shared.
+  </Accordion>
+
+  <Accordion title="View Timeline" icon="clock">
+    See the complete history of this application:
+    
+    - Application submitted
+    - Application viewed by recruiter
+    - Interview scheduled
+    - Status changes
+    - Notes added
+    - Gmail auto-updates (if enabled)
+  </Accordion>
+
+  <Accordion title="Delete Job" icon="trash">
+    Permanently remove a job from your tracker:
+    
+    1. Open job drawer
+    2. Click "Delete" button
+    3. Confirm deletion
+    
+    <Warning>This action cannot be undone. Consider marking as "Rejected" instead to preserve history.</Warning>
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Job Sources
+
+Track where you found each job for better analytics:
+
+| Source | Description | Use Case |
+|--------|-------------|----------|
+| **LinkedIn** | Professional networking platform | Most tech jobs, direct applications |
+| **BrighterMonday** | East African job board | Regional opportunities |
+| **Fuzu** | Pan-African job platform | African market focus |
+| **Manual** | Any other source | Company websites, referrals, recruiters |
+
+<Tip>
+  Tracking sources helps you understand which channels give you the best response rate. Check your Dashboard analytics to see which sources convert best.
+</Tip>
+
+---
+
+## Best Practices
+
+### Organization Tips
+
+<CardGroup cols={2}>
+  <Card title="Add jobs immediately" icon="bolt">
+    Save jobs as soon as you find them. Don't wait until you're ready to apply — you might lose the link.
+  </Card>
+  
+  <Card title="Use detailed notes" icon="clipboard">
+    Include why the job interests you, key requirements, and any contacts. Future you will thank you.
+  </Card>
+  
+  <Card title="Update status promptly" icon="clock">
+    Change status as soon as something happens. This keeps your timeline accurate and triggers notifications.
+  </Card>
+  
+  <Card title="Track rejection reasons" icon="lightbulb">
+    Note why you were rejected (if known). Patterns help you improve your applications.
+  </Card>
+</CardGroup>
+
+### Salary Tracking
+
+<Steps>
+  <Step title="Always add salary range">
+    Even if it's an estimate, track salary expectations. This helps you filter and prioritize opportunities.
+  </Step>
+  
+  <Step title="Use consistent currency">
+    PIPELINE stores all salaries in USD. Convert if the job posts in another currency.
+  </Step>
+  
+  <Step title="Track total compensation">
+    Include base salary only. Note bonuses, equity, and benefits in the job notes.
+  </Step>
+</Steps>
+
+### Application Velocity
+
+Job searching is a numbers game. Here's how to stay organized:
+
+1. **Set weekly application goals** (e.g., 10 applications/week)
+2. **Batch similar jobs** (apply to all backend roles in one session)
+3. **Review Saved jobs daily** (move them to Applied as you complete applications)
+4. **Follow up systematically** (check Applied jobs older than 2 weeks)
+5. **Archive or reject stale jobs** (clean up jobs with no response after 4+ weeks)
+
+---
+
+## Filtering and Search
+
+Find specific jobs quickly:
+
+### Filter by Status
+
+Use the status filter in Tracker to focus on:
+- **Saved** — Jobs you need to apply to
+- **Applied** — Jobs awaiting response
+- **Interview** — Upcoming interviews
+- **Offer** — Active offers to evaluate
+
+### Search
+
+Press `/` or `⌘ F` to search across:
+- Company names
+- Job titles
+- Locations
+- Your private notes
+
+<Tip>
+  Use search to find all jobs at a specific company, in a certain location, or with keywords from your notes.
+</Tip>
+
+---
+
+## Views: Board vs List
+
+PIPELINE offers two ways to view your jobs:
+
+<Tabs>
+  <Tab title="Board View">
+    **Kanban-style columns by status**
+    
+    **Best for:**
+    - Visual pipeline overview
+    - Drag-and-drop status changes
+    - Quick status assessment
+    
+    **How to use:**
+    - Drag jobs between columns to change status
+    - See at a glance how many jobs are in each stage
+    - Identify bottlenecks (too many Applied, not enough Interview)
+  </Tab>
+  
+  <Tab title="List View">
+    **Compact table with all jobs**
+    
+    **Best for:**
+    - Detailed information at once
+    - Sorting and filtering
+    - Bulk reviewing
+    
+    **How to use:**
+    - Sort by date, company, or salary
+    - Filter by status or source
+    - Click any row to open details
+  </Tab>
+</Tabs>
+
+Switch between views using the toggle in the Tracker toolbar.
+
+---
+
+## Integration Features
+
+### Gmail Scanner (Planned)
+
+Automatic status updates from your inbox:
+
+- **Interview emails** → Auto-move to Interview status
+- **Rejection emails** → Auto-move to Rejected status
+- **Response confirmations** → Add timeline event
+
+Scans your Gmail once per day (6 AM) and matches emails to tracked jobs by company name.
+
+### Discord Notifications (Planned)
+
+Get notified in Discord when:
+- Job status changes to Interview or Offer
+- Scraper finds new jobs matching your criteria
+- Daily digest of your pipeline stats
+
+### Google Calendar (Planned)
+
+Auto-create calendar events when:
+- You move a job to Interview status
+- Gmail scanner detects an interview email
+- Interview details are extracted from emails
+
+<Note>
+  All integrations are optional and can be enabled/disabled in Settings.
+</Note>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Analytics" icon="chart-line" href="/guides/analytics">
+    Learn how to interpret your application metrics and improve your success rate.
+  </Card>
+  
+  <Card title="Integrations" icon="plug" href="/guides/integrations">
+    Set up Discord, Gmail, and Calendar integrations for automation.
+  </Card>
+</CardGroup>

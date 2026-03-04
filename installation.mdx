@@ -1,0 +1,760 @@
+---
+title: "Installation"
+description: "Complete installation guide for PIPELINE including dependencies, environment setup, database migrations, and verification."
+---
+
+# Installation
+
+This guide covers the complete installation process for PIPELINE, including system requirements, database setup, environment configuration, and verification steps.
+
+<Info>
+  Looking for a faster setup? Check out the [Quickstart](/quickstart) guide for a streamlined 5-10 minute installation.
+</Info>
+
+## System Requirements
+
+### Required
+
+- **Node.js** ≥ 18.0.0 (or **Bun** ≥ 1.0.0)
+- **Git** for version control
+- **PostgreSQL database** (via Supabase)
+- **Modern browser** (Chrome, Firefox, Safari, Edge)
+
+### Recommended
+
+- **Bun runtime** for optimal performance
+- **Supabase CLI** for database migrations
+- **VS Code** with TypeScript extensions
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    # Install Bun
+    curl -fsSL https://bun.sh/install | bash
+    
+    # Install Supabase CLI
+    brew install supabase/tap/supabase
+    
+    # Verify installations
+    bun --version
+    supabase --version
+    ```
+  </Tab>
+  
+  <Tab title="Linux">
+    ```bash
+    # Install Bun
+    curl -fsSL https://bun.sh/install | bash
+    
+    # Install Supabase CLI
+    brew install supabase/tap/supabase
+    # Or download binary from: https://github.com/supabase/cli/releases
+    
+    # Verify installations
+    bun --version
+    supabase --version
+    ```
+  </Tab>
+  
+  <Tab title="Windows">
+    ```powershell
+    # Install Bun (PowerShell)
+    powershell -c "irm bun.sh/install.ps1 | iex"
+    
+    # Install Supabase CLI (Scoop)
+    scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+    scoop install supabase
+    
+    # Verify installations
+    bun --version
+    supabase --version
+    ```
+  </Tab>
+</Tabs>
+
+## Project Setup
+
+### 1. Clone the Repository
+
+```bash
+# Clone via HTTPS
+git clone https://github.com/yourusername/pipeline.git
+
+# Or via SSH
+git clone git@github.com:yourusername/pipeline.git
+
+# Navigate to project directory
+cd pipeline
+```
+
+### 2. Install Dependencies
+
+<CodeGroup>
+```bash Bun (Recommended)
+bun install
+```
+
+```bash npm
+npm install
+```
+
+```bash yarn
+yarn install
+```
+
+```bash pnpm
+pnpm install
+```
+</CodeGroup>
+
+<Note>
+  PIPELINE uses **Bun** for optimal performance. While npm/yarn/pnpm should work, Bun is the officially supported runtime.
+</Note>
+
+### 3. Verify Installation
+
+```bash
+# Check installed packages
+bun pm ls
+
+# Verify TypeScript compilation
+bun run typecheck
+```
+
+## Database Setup
+
+PIPELINE uses **Supabase** (managed PostgreSQL) for data storage with Row-Level Security (RLS) policies.
+
+### 1. Create Supabase Project
+
+<Steps>
+  <Step title="Sign up for Supabase">
+    1. Go to [supabase.com](https://supabase.com)
+    2. Click **Start your project**
+    3. Sign in with GitHub, GitLab, or email
+  </Step>
+  
+  <Step title="Create a new project">
+    1. Click **New Project**
+    2. Choose your organization (or create one)
+    3. Fill in project details:
+       - **Name**: `pipeline-jobs` (or your preferred name)
+       - **Database Password**: Generate a strong password
+       - **Region**: Choose closest to your location
+       - **Pricing Plan**: Free tier works for development
+    4. Click **Create new project**
+    
+    <Warning>
+      **Save your database password!** You'll need it for direct database access and cannot retrieve it later.
+    </Warning>
+  </Step>
+  
+  <Step title="Wait for provisioning">
+    Project creation takes 1-2 minutes. You'll see a progress indicator.
+  </Step>
+</Steps>
+
+### 2. Get API Credentials
+
+<Steps>
+  <Step title="Navigate to API settings">
+    In your Supabase project dashboard:
+    1. Click **Settings** (gear icon) in the sidebar
+    2. Click **API** under Project Settings
+  </Step>
+  
+  <Step title="Copy credentials">
+    You'll need three values:
+    
+    **Project URL:**
+    ```
+    https://YOUR_PROJECT_REF.supabase.co
+    ```
+    
+    **anon public key:**
+    ```
+    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    ```
+    
+    **service_role key:**
+    ```
+    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    ```
+    
+    <Warning>
+      Keep your **service_role** key secret! It bypasses Row-Level Security and should never be exposed in client-side code.
+    </Warning>
+  </Step>
+</Steps>
+
+### 3. Apply Database Migrations
+
+PIPELINE includes 14 migrations that create:
+
+- **6 tables** (jobs, events, insights, scraper_runs, audit_log, audit_alerts)
+- **5 enums** (job_status, job_source, event_type, insight_type, scraper_status)
+- **20+ indexes** for query performance
+- **RLS policies** for data security
+- **Triggers** for automation
+- **Audit logging** for change tracking
+- **Full-text search** with weighting
+
+<Tabs>
+  <Tab title="Supabase CLI (Recommended)">
+    ```bash
+    # Login to Supabase
+    supabase login
+    
+    # Link to your project
+    # Your project ref is in your Supabase URL: https://YOUR_PROJECT_REF.supabase.co
+    supabase link --project-ref YOUR_PROJECT_REF
+    
+    # Apply all migrations
+    supabase db push
+    
+    # Verify migrations
+    supabase db diff
+    ```
+    
+    <Info>
+      The first time you run `supabase login`, it will open your browser for authentication.
+    </Info>
+  </Tab>
+  
+  <Tab title="Supabase Dashboard">
+    If you prefer not to use the CLI:
+    
+    1. Go to your Supabase project dashboard
+    2. Click **SQL Editor** in the sidebar
+    3. Click **New Query**
+    4. Apply each migration in order:
+    
+    **Migration 001: Core Tables**
+    ```sql
+    -- Copy contents of supabase/migrations/001_tables.sql
+    -- Paste into SQL Editor
+    -- Click "Run"
+    ```
+    
+    **Migration 002: Indexes**
+    ```sql
+    -- Copy contents of supabase/migrations/002_indexes.sql
+    -- Paste into SQL Editor
+    -- Click "Run"
+    ```
+    
+    **Migration 003: Triggers**
+    ```sql
+    -- Copy contents of supabase/migrations/003_triggers.sql
+    -- Paste into SQL Editor
+    -- Click "Run"
+    ```
+    
+    Continue with remaining migrations:
+    - `004_rls.sql` - Row-Level Security policies
+    - `005_audit.sql` - Audit logging system
+    - `006_soft_deletes.sql` - Soft delete support
+    - `007_rls_soft_delete_fix.sql` - RLS for deleted jobs
+    - `008_fix_status_transitions.sql` - Status transition rules
+    - `009_fix_service_role_bypass.sql` - Service role limits
+    - `010_trigger_error_handling.sql` - Error handling
+    - `011_remove_redundant_indexes.sql` - Index optimization
+    - `012_add_check_constraints.sql` - Data integrity
+    - `013_fulltext_search_weighting.sql` - Search weighting
+    - `014_fix_security_definer_views.sql` - Security fixes
+    
+    <Warning>
+      **Critical:** Run migrations in numerical order! Later migrations depend on earlier ones.
+    </Warning>
+  </Tab>
+</Tabs>
+
+### 4. Verify Database Setup
+
+<Steps>
+  <Step title="Check tables exist">
+    In Supabase Dashboard → **Table Editor**, verify these tables:
+    
+    - ✅ `jobs` - Job applications
+    - ✅ `events` - Activity timeline
+    - ✅ `insights` - AI-generated insights
+    - ✅ `scraper_runs` - Scraper telemetry
+    - ✅ `audit_log` - Change history
+    - ✅ `audit_alerts` - Security alerts
+  </Step>
+  
+  <Step title="Verify RLS policies">
+    Click on any table → **Policies** tab. You should see policies like:
+    
+    - `Users can view own jobs`
+    - `Users can insert own jobs`
+    - `Users can update own jobs`
+    - `Users can delete own jobs`
+  </Step>
+  
+  <Step title="Test database connection (optional)">
+    ```bash
+    # Run validation script (if you have devDependencies installed)
+    bun run contracts:validate
+    
+    # Or test with SQL
+    supabase db diff
+    ```
+  </Step>
+</Steps>
+
+## Environment Configuration
+
+### 1. Create Environment File
+
+```bash
+cp .env.example .env.local
+```
+
+<Warning>
+  Never commit `.env.local` to version control! It's already in `.gitignore` but double-check before pushing.
+</Warning>
+
+### 2. Configure Required Variables
+
+Open `.env.local` and fill in your Supabase credentials:
+
+```bash .env.local
+# =============================================================================
+# PIPELINE — Environment Variables
+# =============================================================================
+
+# ─── Supabase (REQUIRED) ─────────────────────────────────────────────────────
+# Get these from: https://supabase.com/dashboard/project/YOUR_PROJECT/settings/api
+
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+
+# ─── Application (REQUIRED for production) ───────────────────────────────────
+
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Debug mode — set to 'true' for verbose logging
+# DEBUG=false
+```
+
+<Info>
+  Only Supabase variables are required to get started. AI services, Discord, and other integrations are optional.
+</Info>
+
+### 3. Optional: Configure AI Services
+
+For AI match scoring and insights (coming in Phase 2):
+
+```bash .env.local
+# ─── AI Services (OPTIONAL — Module 4) ───────────────────────────────────────
+# Required for: Job scoring, insights generation, daily digests
+
+# Anthropic (Claude)
+# Get from: https://console.anthropic.com/account/keys
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Google AI (Gemini)
+# Get from: https://makersuite.google.com/app/apikey
+GOOGLE_AI_API_KEY=...
+```
+
+### 4. Optional: Configure Integrations
+
+```bash .env.local
+# ─── Discord Integration (OPTIONAL — Module 5) ───────────────────────────────
+DISCORD_BOT_TOKEN=...
+DISCORD_WEBHOOK_ALERTS=https://discord.com/api/webhooks/...
+DISCORD_WEBHOOK_DIGEST=https://discord.com/api/webhooks/...
+
+# ─── Google / Gmail Integration (OPTIONAL — Module 5) ────────────────────────
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REFRESH_TOKEN=...
+
+# ─── Scraper Service (OPTIONAL — Module 2) ───────────────────────────────────
+SCRAPER_URL=https://your-scraper.fly.dev
+SCRAPER_API_KEY=your-secret-key
+```
+
+## Development Server
+
+### Start the Server
+
+<CodeGroup>
+```bash Bun (Recommended)
+bun run dev
+```
+
+```bash npm
+npm run dev
+```
+
+```bash Custom Port
+bun run dev -- --port 3001
+```
+</CodeGroup>
+
+The application will be available at:
+
+- Local: [http://localhost:3000](http://localhost:3000)
+- Network: `http://YOUR_LOCAL_IP:3000`
+
+<Info>
+  The dev server includes:
+  - ⚡ Fast Refresh for instant updates
+  - 🔍 TypeScript type checking
+  - 🎨 Tailwind CSS hot reload
+  - 🐛 Detailed error overlay
+</Info>
+
+### Verify Installation
+
+<Steps>
+  <Step title="Check server started">
+    You should see:
+    ```
+    ✓ Ready in 2.3s
+    ○ Local:    http://localhost:3000
+    ○ Network:  http://192.168.1.100:3000
+    ```
+  </Step>
+  
+  <Step title="Open in browser">
+    Navigate to [http://localhost:3000](http://localhost:3000)
+    
+    You should see the PIPELINE landing page with:
+    - Hero section with "Treat job hunting like DevOps"
+    - Sign Up / Log In buttons
+    - Terminal aesthetic
+  </Step>
+  
+  <Step title="Test authentication">
+    1. Click **Sign Up**
+    2. Enter email and password
+    3. Submit form
+    4. Check for success message or email confirmation prompt
+  </Step>
+</Steps>
+
+## Post-Installation Setup
+
+### 1. Configure Email Confirmations (Development)
+
+By default, Supabase requires email confirmation for new users:
+
+<Tabs>
+  <Tab title="Disable for Development">
+    For local development, you can disable email confirmation:
+    
+    1. Go to Supabase Dashboard → **Authentication** → **Settings**
+    2. Scroll to **User Signups**
+    3. Toggle **Enable email confirmations** to OFF
+    4. Click **Save**
+    
+    <Warning>
+      Re-enable email confirmations for production!
+    </Warning>
+  </Tab>
+  
+  <Tab title="Configure SMTP">
+    For production or if you want real emails:
+    
+    1. Go to Supabase Dashboard → **Authentication** → **Settings**
+    2. Scroll to **SMTP Settings**
+    3. Choose between:
+       - **Supabase's SMTP** (default, limited to 3 emails/hour)
+       - **Custom SMTP** (your email provider)
+    4. Configure email templates in **Email Templates** section
+  </Tab>
+</Tabs>
+
+### 2. Generate TypeScript Types (Optional)
+
+Generate TypeScript types from your database schema:
+
+```bash
+# Generate types
+supabase gen types typescript --linked > src/lib/types/database.types.ts
+
+# Verify types
+bun run typecheck
+```
+
+<Info>
+  Types are already included in the repository and match migration 014. You only need to regenerate if you modify the schema.
+</Info>
+
+### 3. Run Tests (Optional)
+
+Verify everything is working:
+
+```bash
+# Run all tests
+bun test
+
+# Run with coverage
+bun run test:coverage
+
+# Watch mode
+bun test --watch
+```
+
+### 4. Enable RLS Testing (Optional)
+
+Test Row-Level Security policies:
+
+```bash
+# Install test dependencies (if not already installed)
+bun add -d @types/pg pg dotenv
+
+# Run RLS tests
+bun run test:rls
+```
+
+## Building for Production
+
+### Create Production Build
+
+```bash
+# Create optimized production build
+bun run build
+
+# Test production build locally
+bun run start
+```
+
+The build process:
+1. Type-checks all TypeScript files
+2. Compiles Next.js pages and API routes
+3. Optimizes images and assets
+4. Generates static pages where possible
+5. Creates production-ready bundles
+
+<Info>
+  For deployment instructions, see the [Deployment Guide](/deployment).
+</Info>
+
+## Project Structure
+
+Understanding the codebase:
+
+```
+pipeline/
+├── app/                      # Next.js App Router
+│   ├── (app)/                # Authenticated pages
+│   │   ├── tracker/          # Kanban board + list view
+│   │   ├── dashboard/        # Analytics dashboard
+│   │   ├── intel/            # Market insights
+│   │   ├── settings/         # User settings
+│   │   └── help/             # Documentation
+│   ├── (auth)/               # Auth pages (login, signup)
+│   ├── api/                  # API routes
+│   │   ├── auth/             # Authentication endpoints
+│   │   ├── jobs/             # Jobs CRUD
+│   │   ├── analytics/        # Dashboard data
+│   │   └── ai/               # AI services
+│   └── page.tsx              # Landing page
+├── src/
+│   ├── components/           # React components
+│   │   ├── ui/               # shadcn/ui primitives
+│   │   ├── layout/           # Sidebar, topbar, etc.
+│   │   ├── jobs/             # Job-related components
+│   │   └── tracker/          # Board and list views
+│   ├── hooks/                # Custom React hooks
+│   ├── lib/                  # Utilities and config
+│   │   ├── supabase/         # Supabase clients
+│   │   ├── stores/           # Zustand state stores
+│   │   ├── types/            # TypeScript types
+│   │   └── validations/      # Zod schemas
+│   └── views/                # Page-level components
+├── supabase/
+│   ├── migrations/           # Database migrations
+│   └── config.toml           # Supabase configuration
+├── docs/                     # Documentation
+├── scripts/                  # Automation scripts
+├── tests/                    # Test suites
+└── .env.local                # Environment variables (create this)
+```
+
+## Troubleshooting
+
+### Common Installation Issues
+
+<AccordionGroup>
+  <Accordion title="Bun installation fails">
+    **macOS/Linux:**
+    ```bash
+    # Try with sudo
+    curl -fsSL https://bun.sh/install | bash
+    
+    # Add to PATH manually
+    export BUN_INSTALL="$HOME/.bun"
+    export PATH="$BUN_INSTALL/bin:$PATH"
+    ```
+    
+    **Windows:**
+    - Ensure PowerShell execution policy allows scripts
+    - Run PowerShell as Administrator
+    - Try WSL2 if issues persist
+  </Accordion>
+  
+  <Accordion title="npm/bun install hangs">
+    ```bash
+    # Clear package manager cache
+    bun pm cache rm
+    
+    # Or for npm
+    npm cache clean --force
+    
+    # Delete lockfile and node_modules
+    rm -rf node_modules bun.lock
+    
+    # Reinstall
+    bun install
+    ```
+  </Accordion>
+  
+  <Accordion title="TypeScript errors after installation">
+    ```bash
+    # Ensure all dependencies are installed
+    bun install
+    
+    # Clear Next.js cache
+    rm -rf .next
+    
+    # Regenerate types
+    bun run typecheck
+    ```
+  </Accordion>
+  
+  <Accordion title="Supabase CLI not found">
+    **macOS/Linux:**
+    ```bash
+    # Install via Homebrew
+    brew install supabase/tap/supabase
+    
+    # Or download binary
+    # https://github.com/supabase/cli/releases
+    ```
+    
+    **Windows:**
+    ```powershell
+    # Install via Scoop
+    scoop install supabase
+    ```
+  </Accordion>
+  
+  <Accordion title="Database migrations fail">
+    **Check connection:**
+    ```bash
+    supabase db remote status
+    ```
+    
+    **Re-link project:**
+    ```bash
+    supabase unlink
+    supabase link --project-ref YOUR_PROJECT_REF
+    ```
+    
+    **Apply migrations with debug:**
+    ```bash
+    supabase db push --debug
+    ```
+    
+    **Reset and retry (destructive):**
+    ```bash
+    supabase db reset
+    ```
+  </Accordion>
+  
+  <Accordion title="Environment variables not loading">
+    **Check file name:**
+    - Must be `.env.local` (not `.env` or `.env.development`)
+    
+    **Restart dev server:**
+    ```bash
+    # Stop server (Ctrl+C)
+    # Start again
+    bun run dev
+    ```
+    
+    **Verify values:**
+    ```bash
+    # In dev tools console
+    console.log(process.env.NEXT_PUBLIC_SUPABASE_URL)
+    ```
+  </Accordion>
+  
+  <Accordion title="Port 3000 already in use">
+    **Find and kill process:**
+    ```bash
+    # macOS/Linux
+    lsof -ti:3000 | xargs kill -9
+    
+    # Windows
+    netstat -ano | findstr :3000
+    taskkill /PID <PID> /F
+    ```
+    
+    **Or use different port:**
+    ```bash
+    bun run dev -- --port 3001
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Getting Help
+
+If you're still having issues:
+
+1. **Check existing issues**: [GitHub Issues](https://github.com/yourusername/pipeline/issues)
+2. **Review documentation**: See [docs/](https://github.com/yourusername/pipeline/tree/main/docs)
+3. **Join Discord**: Get help from the community
+4. **Open an issue**: Provide details about your environment and error messages
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="sliders" href="/installation">
+    Configure AI services, integrations, and feature flags.
+  </Card>
+  
+  <Card title="Architecture" icon="diagram-project" href="/architecture/tech-stack">
+    Learn about PIPELINE's architecture and design decisions.
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore API endpoints and data models.
+  </Card>
+  
+  <Card title="Deployment" icon="rocket" href="/architecture/deployment">
+    Deploy PIPELINE to production (Vercel, Netlify, self-hosted).
+  </Card>
+</CardGroup>
+
+## Development Workflow
+
+### Recommended Setup
+
+1. **VS Code Extensions:**
+   - ESLint
+   - Prettier
+   - Tailwind CSS IntelliSense
+   - TypeScript and JavaScript Language Features
+
+2. **Git Hooks:**
+   ```bash
+   # Enable pre-commit type checking
+   chmod +x scripts/hooks/pre-commit-types.sh
+   cp scripts/hooks/pre-commit-types.sh .git/hooks/pre-commit
+   ```
+
+3. **Database Backups:**
+   ```bash
+   # Backup database before major changes
+   supabase db dump -f backup.sql
+   ```
+
+You're all set! Head to the [Quickstart](/quickstart) to track your first job.

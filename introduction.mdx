@@ -1,0 +1,132 @@
+---
+title: "Introduction to PIPELINE"
+description: "A job search intelligence platform with a terminal/hacker aesthetic. Track applications, auto-scrape job boards, score matches with AI, and get notified on Discord when things move."
+---
+
+# Introduction to PIPELINE
+
+> Treat job hunting like DevOps.
+
+PIPELINE is a job search intelligence platform designed for developers who want to bring the same rigor and automation to their job hunt as they do to their code. With a sleek terminal/hacker aesthetic, PIPELINE transforms the chaos of job searching into a systematic, trackable process.
+
+## What is PIPELINE?
+
+PIPELINE is a Next.js-based job tracking application that combines:
+
+- **Visual job tracking** with Kanban boards and list views
+- **AI-powered matching** to score job opportunities
+- **Automated scraping** from major job boards
+- **Smart notifications** via Discord when applications progress
+- **Analytics and insights** to optimize your job search strategy
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Kanban Board & List Views" icon="table-columns">
+    Drag-and-drop job tracking with status columns (Saved, Applied, Interview, Offer, Rejected). Switch between board and list views with advanced sorting and filtering.
+  </Card>
+  
+  <Card title="Command Palette" icon="terminal">
+    Navigate the entire app with keyboard shortcuts. Press `⌘K` to open the command palette and access any feature instantly.
+  </Card>
+  
+  <Card title="AI Match Scoring" icon="brain">
+    Automatically score job listings against your profile using Gemini or Claude APIs. Get insights on fit, required skills, and growth opportunities.
+  </Card>
+  
+  <Card title="Job Board Scraping" icon="robot">
+    Auto-scrape jobs from BrighterMonday, Fuzu, and LinkedIn. New opportunities appear in your tracker without manual entry.
+  </Card>
+  
+  <Card title="Discord Integration" icon="message">
+    Get notifications when applications move forward, interviews are scheduled, or offers are received. Execute commands directly from Discord.
+  </Card>
+  
+  <Card title="Analytics Dashboard" icon="chart-line">
+    Track metrics like response rate, time-to-interview, and conversion funnel. Visualize trends and optimize your strategy.
+  </Card>
+</CardGroup>
+
+## Why PIPELINE?
+
+### Built for Developers
+
+PIPELINE speaks your language. The terminal aesthetic isn't just for show—every interaction is optimized for keyboard-first navigation with shortcuts like:
+
+- `⌘K` - Command palette
+- `⌘N` - Add new job
+- `⌘1-4` - Navigate between pages
+- `⌘,` - Open settings
+- `⌘/` - View all shortcuts
+
+### Data-Driven Job Search
+
+Stop guessing. PIPELINE tracks:
+
+- **Application metrics** - How many applications lead to interviews?
+- **Timeline analysis** - How long does each stage take?
+- **Company insights** - Market data on hiring trends
+- **Match scoring** - Which jobs are actually worth your time?
+
+### Privacy First
+
+All your data stays in your Supabase instance with Row-Level Security (RLS) policies. You own your data, not us.
+
+### Automation Without Black Boxes
+
+Every automation is transparent:
+
+- **Audit logs** track every change
+- **Event timeline** shows exactly what happened when
+- **Manual overrides** available for all automated actions
+
+## Tech Stack
+
+PIPELINE is built with modern, production-ready technologies:
+
+```
+Framework:    Next.js 15 (App Router)
+Styling:      Tailwind CSS v4 (@theme tokens)
+Components:   shadcn/ui (terminal aesthetic)
+State:        Zustand v5
+Database:     Supabase (PostgreSQL + RLS)
+Auth:         Supabase Auth (@supabase/ssr)
+Charts:       Recharts v3
+Animations:   Framer Motion v12
+Runtime:      Bun
+```
+
+## Current Status
+
+PIPELINE is under active development:
+
+| Feature | Status |
+|---------|--------|
+| **UI - All Pages** | ✅ Complete |
+| **Authentication** | ✅ Live |
+| **Database & Migrations** | ✅ Live |
+| **Jobs CRUD** | ⚠️ In Progress |
+| **Analytics** | ⚠️ Planned |
+| **AI Engine** | ⚠️ Planned |
+| **Scraper Service** | ⚠️ Planned |
+| **Integrations** | ⚠️ Planned |
+
+<Info>
+  The core UI and authentication system are fully functional. Backend APIs are being implemented in phases. See the [Quickstart](/quickstart) to get started with what's available now.
+</Info>
+
+## Who Should Use PIPELINE?
+
+PIPELINE is ideal for:
+
+- **Software engineers** actively job hunting
+- **DevOps professionals** who love automation
+- **Data-driven job seekers** who want metrics
+- **Keyboard warriors** who hate clicking around
+- **Privacy-conscious users** who want to self-host
+
+## What's Next?
+
+Ready to get started? Head to the [Quickstart](/quickstart) guide to set up PIPELINE in under 10 minutes.
+
+For detailed installation instructions including database setup, see the [Installation](/installation) guide.

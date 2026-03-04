@@ -1,0 +1,310 @@
+---
+title: 'API Overview'
+description: 'Learn about the Pipeline Job Tracker API, including base URLs, request/response formats, and versioning'
+icon: 'book-open'
+---
+
+## Introduction
+
+The Pipeline Job Tracker API provides programmatic access to manage job applications, track your job search pipeline, and leverage AI-powered insights. The API follows RESTful principles and uses JSON for request and response bodies.
+
+## Base URL
+
+The API is available at the following base URLs:
+
+<ParamField path="Development" type="string">
+  ```
+  http://localhost:3000
+  ```
+  Used for local development and testing
+</ParamField>
+
+<ParamField path="Production" type="string">
+  ```
+  https://api.pipeline.local
+  ```
+  Production environment for live applications
+</ParamField>
+
+## API Version
+
+The current API version is **v1.0.0**. All endpoints are prefixed with `/api/`.
+
+## Request Format
+
+### Headers
+
+All API requests should include the following headers:
+
+<ParamField header="Content-Type" type="string" required>
+  Set to `application/json` for requests with a body
+</ParamField>
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for authenticated endpoints (see [Authentication](/api/authentication))
+  
+  ```
+  Authorization: Bearer <your-jwt-token>
+  ```
+</ParamField>
+
+### Request Body
+
+Request bodies must be valid JSON. Example:
+
+```json
+{
+  "company_name": "Acme Corp",
+  "job_title": "Senior Software Engineer",
+  "status": "applied",
+  "source": "linkedin"
+}
+```
+
+## Response Format
+
+### Success Responses
+
+Successful responses return JSON with a `data` field containing the requested resource(s):
+
+<ResponseField name="data" type="object | array">
+  The requested resource or array of resources
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total count of resources (for paginated list endpoints)
+</ResponseField>
+
+<ResponseField name="page" type="integer">
+  Current page number (for paginated endpoints)
+</ResponseField>
+
+<ResponseField name="limit" type="integer">
+  Number of items per page (for paginated endpoints)
+</ResponseField>
+
+<ResponseField name="has_more" type="boolean">
+  Whether more pages are available (for paginated endpoints)
+</ResponseField>
+
+#### Example Success Response
+
+```json
+{
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "company_name": "Acme Corp",
+      "job_title": "Senior Software Engineer",
+      "status": "applied",
+      "created_at": "2026-03-01T10:30:00Z"
+    }
+  ],
+  "total": 42,
+  "page": 1,
+  "limit": 100,
+  "has_more": false
+}
+```
+
+### Error Responses
+
+Error responses include an `error` object with details about what went wrong:
+
+<ResponseField name="error.code" type="string">
+  Machine-readable error code (e.g., `UNAUTHORIZED`, `VALIDATION_ERROR`, `NOT_FOUND`)
+</ResponseField>
+
+<ResponseField name="error.message" type="string">
+  Human-readable error message
+</ResponseField>
+
+<ResponseField name="error.details" type="array">
+  Additional validation error details (for `VALIDATION_ERROR` responses)
+</ResponseField>
+
+<ResponseField name="error.request_id" type="string">
+  Unique request identifier for debugging (optional)
+</ResponseField>
+
+<ResponseField name="error.retry_after" type="integer">
+  Seconds to wait before retrying (for rate limit errors)
+</ResponseField>
+
+## HTTP Status Codes
+
+The API uses standard HTTP status codes to indicate the success or failure of requests:
+
+| Status Code | Meaning | Description |
+|------------|---------|-------------|
+| `200` | OK | Request succeeded |
+| `201` | Created | Resource created successfully |
+| `202` | Accepted | Request accepted for processing (async operations) |
+| `400` | Bad Request | Invalid request format or parameters |
+| `401` | Unauthorized | Authentication required or invalid credentials |
+| `403` | Forbidden | Authenticated but not authorized for this resource |
+| `404` | Not Found | Resource does not exist |
+| `409` | Conflict | Resource conflict (e.g., email already exists) |
+| `429` | Too Many Requests | Rate limit exceeded |
+| `500` | Internal Server Error | Unexpected server error |
+| `503` | Service Unavailable | Service temporarily unavailable |
+
+### Common Error Examples
+
+<CodeGroup>
+```json 401 Unauthorized
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "No valid session found",
+    "request_id": "req_abc123"
+  }
+}
+```
+
+```json 400 Validation Error
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid input",
+    "details": [
+      {
+        "field": "email",
+        "message": "Invalid email address"
+      }
+    ]
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Job not found",
+    "request_id": "req_def456"
+  }
+}
+```
+
+```json 429 Rate Limited
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests. Please try again in 60 seconds.",
+    "retry_after": 60
+  }
+}
+```
+</CodeGroup>
+
+## Rate Limiting
+
+The API implements rate limiting to ensure fair usage and prevent abuse:
+
+| Endpoint Type | Limit | Window |
+|--------------|-------|--------|
+| Standard | 100 requests | per minute |
+| Authentication | 5 requests | per minute |
+| Scraper endpoints | 10 requests | per hour |
+| AI endpoints | 20 requests | per hour |
+
+### Rate Limit Headers
+
+All responses include rate limit information in headers:
+
+<ParamField header="X-RateLimit-Limit" type="integer">
+  Maximum number of requests allowed in the current window
+</ParamField>
+
+<ParamField header="X-RateLimit-Remaining" type="integer">
+  Number of requests remaining in the current window
+</ParamField>
+
+<ParamField header="X-RateLimit-Reset" type="integer">
+  Unix timestamp when the rate limit resets
+</ParamField>
+
+When you exceed the rate limit, the API returns a `429 Too Many Requests` response with a `retry_after` field indicating how long to wait.
+
+## Pagination
+
+List endpoints support pagination using query parameters:
+
+<ParamField query="page" type="integer" default="1">
+  Page number to retrieve (1-indexed)
+</ParamField>
+
+<ParamField query="limit" type="integer" default="100">
+  Number of items per page (maximum: 500)
+</ParamField>
+
+### Pagination Example
+
+```bash
+GET /api/jobs?page=2&limit=50
+```
+
+Response includes pagination metadata:
+
+```json
+{
+  "data": [...],
+  "total": 150,
+  "page": 2,
+  "limit": 50,
+  "has_more": true
+}
+```
+
+## Filtering and Sorting
+
+Many list endpoints support filtering and sorting:
+
+<ParamField query="sort" type="string">
+  Field to sort by (e.g., `created_at`, `updated_at`, `company_name`)
+</ParamField>
+
+<ParamField query="order" type="string" default="desc">
+  Sort order: `asc` or `desc`
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search query (searches across relevant fields)
+</ParamField>
+
+### Filtering Example
+
+```bash
+GET /api/jobs?status=applied,interviewing&sort=updated_at&order=desc&search=engineer
+```
+
+## Public Endpoints
+
+The following endpoints do not require authentication:
+
+- `POST /api/auth/signup` - Create account
+- `POST /api/auth/login` - Login
+- `GET /api/health` - Health check
+
+All other endpoints require a valid Bearer token in the `Authorization` header.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/api/authentication">
+    Learn how to authenticate and manage sessions
+  </Card>
+  
+  <Card title="Jobs API" icon="briefcase" href="/api/jobs">
+    Create, update, and manage job applications
+  </Card>
+  
+  <Card title="AI Features" icon="brain" href="/api/ai">
+    Get AI-powered insights and job scoring
+  </Card>
+  
+  <Card title="Analytics" icon="chart-line" href="/api/analytics">
+    Access dashboard and timeline analytics
+  </Card>
+</CardGroup>

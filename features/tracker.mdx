@@ -1,0 +1,384 @@
+---
+title: 'Tracker'
+description: 'Manage your job applications with Kanban board and list views, drag-and-drop status updates, and powerful filtering.'
+icon: 'grip-vertical'
+---
+
+## Overview
+
+The **Tracker** is your central hub for managing all job applications. It provides two distinct views—Board and List—with real-time status management, filtering, and search capabilities.
+
+<Info>
+  The Tracker automatically syncs with your job database and displays AI match scores for intelligent prioritization.
+</Info>
+
+## Views
+
+### Board View (Kanban)
+
+The board view organizes jobs into 5 status columns with drag-and-drop functionality:
+
+<CardGroup cols={2}>
+  <Card title="Saved" icon="bookmark" color="#a6a6a6">
+    Jobs you've bookmarked for later review
+  </Card>
+  <Card title="Applied" icon="paper-plane" color="#5ca4e6">
+    Applications you've submitted
+  </Card>
+  <Card title="Interview" icon="calendar" color="#a855f7">
+    Jobs where you're in the interview process
+  </Card>
+  <Card title="Offer" icon="zap" color="#f59e0b">
+    Jobs where you've received an offer
+  </Card>
+  <Card title="Rejected" icon="x-circle" color="#f43f5e">
+    Applications that didn't move forward
+  </Card>
+</CardGroup>
+
+#### Board Features
+
+<AccordionGroup>
+  <Accordion title="Drag-and-Drop Status Updates">
+    Click and drag any job card between columns to update its status instantly. The system automatically timestamps status changes and logs them in the activity timeline.
+
+    ```typescript
+    // Status update mutation (src/views/app/tracker.tsx:71-73)
+    const handleUpdateStatus = (jobId: string, status: JobStatus) => {
+      updateJobMutation.mutate({ id: jobId, updates: { status } })
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Quick Add from Columns">
+    Each column header has a `+` button that opens the job creation form with the status pre-selected.
+
+    <Frame>
+    </Frame>
+  </Accordion>
+
+  <Accordion title="Visual Score Indicators">
+    Each job card displays an AI match score bar with color coding:
+    - **Excellent** (80%+): Light gray `hsl(0 0% 85%)`
+    - **Good** (60-79%): Amber `hsl(38 90% 58%)`
+    - **Fair** (under 60%): Red `hsl(0 65% 58%)`
+
+    ```typescript
+    // Score bar component (src/components/tracker/job-card.tsx:19-44)
+    function ScoreBar({ score }: { score: number }) {
+      const color = score >= 80 ? 'hsl(0 0% 85%)' 
+                  : score >= 60 ? 'hsl(38 90% 58%)' 
+                  : 'hsl(0 65% 58%)'
+      const label = score >= 80 ? 'EXCELLENT' 
+                  : score >= 60 ? 'GOOD' 
+                  : 'FAIR'
+      // Progress bar animation on mount
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### List View (Table)
+
+The list view displays jobs in a sortable, searchable table format with enhanced density:
+
+<Steps>
+  <Step title="Search">
+    Type in the search bar to filter by job title or company name. Results update instantly.
+    
+    ```tsx
+    // Live search filtering (src/components/tracker/list-view.tsx:237-251)
+    function applyFiltersAndSearch(jobs: Job[], filters: TrackerFilters, search: string) {
+      return jobs.filter(job => {
+        if (search) {
+          const q = search.toLowerCase()
+          if (!job.job_title?.toLowerCase().includes(q) &&
+              !job.company_name?.toLowerCase().includes(q)) {
+            return false
+          }
+        }
+        // Apply filters...
+      })
+    }
+    ```
+  </Step>
+
+  <Step title="Sort Columns">
+    Click any column header to sort by that field. Click again to reverse sort direction.
+
+    **Available Sort Keys:**
+    - `company` — Company name (A-Z)
+    - `role` — Job title (A-Z)
+    - `status` — Application status
+    - `score` — AI match score (0-100)
+    - `date` — Creation timestamp
+  </Step>
+
+  <Step title="Batch Selection">
+    Use checkboxes to select multiple jobs for bulk operations (feature in progress).
+  </Step>
+</Steps>
+
+<Frame>
+</Frame>
+
+## Filtering
+
+Click the **FILTER** button to reveal the filter bar with three categories:
+
+<Tabs>
+  <Tab title="AI Score">
+    Filter by AI match score ranges:
+    - **All** — Show all jobs
+    - **80%+** — Excellent matches only
+    - **60-79%** — Good matches
+    - **Under 60%** — Fair matches
+
+    ```typescript
+    // Score filtering logic (src/components/tracker/board-view.tsx:140-155)
+    function applyFilters(jobs: Job[], filters: TrackerFilters): Job[] {
+      return jobs.filter(job => {
+        if (filters.score === '80plus' && (job.ai_match_score ?? 0) < 80) 
+          return false
+        if (filters.score === '60to79' && 
+            ((job.ai_match_score ?? 0) < 60 || (job.ai_match_score ?? 0) >= 80)) 
+          return false
+        if (filters.score === 'below60' && (job.ai_match_score ?? 0) >= 60) 
+          return false
+        return true
+      })
+    }
+    ```
+  </Tab>
+
+  <Tab title="Source">
+    Filter by job source:
+    - `brightermonday`
+    - `fuzu`
+    - `linkedin`
+    - `manual`
+
+    Sources are stored as database enums and match the `JobSource` type.
+  </Tab>
+
+  <Tab title="Date Range">
+    Filter by creation date:
+    - **7d** — Last 7 days
+    - **30d** — Last 30 days
+    - **90d** — Last 90 days
+    - **All** — No date filter
+  </Tab>
+</Tabs>
+
+<Note>
+  Active filters are indicated by a count badge on the FILTER button. Click "Clear" to reset all filters.
+</Note>
+
+## Keyboard Shortcuts
+
+<Warning>
+  Keyboard shortcuts are planned but not yet implemented in the current codebase.
+</Warning>
+
+Planned shortcuts:
+- `Cmd+K` — Focus search
+- `N` — New job
+- `B` — Switch to board view
+- `L` — Switch to list view
+- `F` — Toggle filters
+
+## Job Cards
+
+Each job card displays key information at a glance:
+
+```tsx
+// Job card structure (src/components/tracker/job-card.tsx:46-106)
+<div className="card-bracket">
+  {/* Company logo (first letter) + job title */}
+  <div className="flex items-start gap-3">
+    <div className="w-8 h-8 bg-background">
+      {job.company_name?.[0]}
+    </div>
+    <div>
+      <p className="text-xs font-bold">{job.job_title}</p>
+      <p className="text-[10px]">{job.company_name}</p>
+    </div>
+  </div>
+
+  {/* Location + salary metadata */}
+  {job.location && <span><MapPin /> {job.location}</span>}
+  {job.salary_range_min && <span><DollarSign /> ${min}k-${max}k</span>}
+
+  {/* AI match score bar */}
+  <ScoreBar score={job.ai_match_score} />
+</div>
+```
+
+### Hover Actions
+
+Hover over a job card to reveal the actions menu (hamburger icon) with options:
+- **View Details** — Opens the job drawer
+- **Edit** — Opens the job form
+- **Copy Link** — Copies the original job URL
+- **Delete** — Purges the record
+
+<Check>
+  Actions are implemented via `<JobActions />` component with dropdown menu.
+</Check>
+
+## Data Structure
+
+### Job Type
+
+```typescript
+// Core Job type (src/lib/types/index.ts:17-54)
+export interface Job {
+  id: string;
+  user_id: string;
+
+  // Core fields
+  company_name: string;
+  job_title: string;
+  job_description: string | null;
+  job_url: string | null;
+  source: JobSource; // 'brightermonday' | 'fuzu' | 'linkedin' | 'manual'
+  status: JobStatus; // 'saved' | 'applied' | 'interview' | 'offer' | 'rejected'
+
+  // AI fields
+  ai_match_score: number | null;       // 0-100
+  ai_parsed_data: AIParsedData | null;
+  ai_reasoning: string | null;
+
+  // Timestamps
+  applied_at: string | null;
+  interview_at: string | null;
+  offer_at: string | null;
+  rejected_at: string | null;
+
+  // Metadata
+  notes: string | null;
+  tags: string[] | null;
+  salary_range_min: number | null;
+  salary_range_max: number | null;
+  location: string | null;
+  is_remote: boolean | null;
+
+  // System
+  created_at: string;
+  updated_at: string;
+}
+```
+
+### Tracker Filters
+
+```typescript
+// Filter state (src/views/app/tracker.tsx:20-31)
+export interface TrackerFilters {
+  score: 'all' | '80plus' | '60to79' | 'below60'
+  source: 'all' | JobSource
+  date: 'all' | '7d' | '30d' | '90d'
+}
+
+const DEFAULT_FILTERS: TrackerFilters = {
+  score: 'all',
+  source: 'all',
+  date: 'all',
+}
+```
+
+## API Endpoints
+
+The Tracker fetches data from:
+
+### GET /api/jobs
+
+Returns all jobs for the authenticated user with optional query parameters:
+
+<ParamField query="status" type="JobStatus[]">
+  Filter by status (can provide multiple)
+</ParamField>
+
+<ParamField query="source" type="JobSource">
+  Filter by job source
+</ParamField>
+
+<ParamField query="min_score" type="number">
+  Minimum AI match score (0-100)
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search job titles and company names
+</ParamField>
+
+<ParamField query="page" type="number" default="1">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="limit" type="number" default="100">
+  Results per page
+</ParamField>
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "company_name": "Acme Corp",
+      "job_title": "Senior Engineer",
+      "status": "applied",
+      "ai_match_score": 87,
+      "location": "San Francisco",
+      "salary_range_min": 180000,
+      "salary_range_max": 250000,
+      "created_at": "2026-03-01T10:00:00Z"
+    }
+  ],
+  "total": 42,
+  "page": 1,
+  "limit": 100,
+  "has_more": false
+}
+```
+
+<ResponseExample>
+```typescript
+// React Query hook usage (src/views/app/tracker.tsx:48-49)
+const { data: jobsResponse, isLoading, isError } = useJobs()
+const jobs = jobsResponse?.data ?? []
+```
+</ResponseExample>
+
+## Performance
+
+The Tracker is optimized for large datasets:
+
+<Accordion title="Virtual Scrolling (Planned)">
+  For users with 500+ jobs, virtual scrolling will render only visible cards to maintain 60 FPS.
+</Accordion>
+
+<Accordion title="Optimistic Updates">
+  Status changes update the UI immediately while the mutation runs in the background via TanStack Query.
+</Accordion>
+
+<Accordion title="Debounced Search">
+  Search input uses a debounce to avoid excessive filtering on every keystroke.
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Job Details" icon="magnifying-glass" href="/guides/job-management">
+    Learn about the job drawer and detailed view
+  </Card>
+  <Card title="Dashboard" icon="chart-line" href="/features/dashboard">
+    Track your application metrics
+  </Card>
+  <Card title="AI Scoring" icon="brain" href="/features/ai-scoring">
+    Understand how match scores are calculated
+  </Card>
+  <Card title="Filters API" icon="filter" href="/api/jobs">
+    API reference for job filtering
+  </Card>
+</CardGroup>
